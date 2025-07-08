@@ -31,7 +31,7 @@ export default function HeroSection() {
   }, []);
 
   return (
-    <section className="relative py-20 overflow-hidden mb-8 bg-white flex items-center justify-center min-h-[52vh]">
+    <section className="relative py-20 overflow-hidden mb-8 mt-10 bg-white flex items-center justify-center min-h-[45vh]">
       <div className="container mx-auto px-5 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-5xl md:text-5xl lg:text-5xl font-semibold leading-tight mb-8 drop-shadow-sm">

@@ -19,28 +19,27 @@ import Footer from "@/components/footer";
 export default function HomePage() {
   return (
     <div
-      className="min-h-screen bg-gradient-to-b from-white to-gray-50 text-gray-900"
+      className="min-h-screen flex flex-col bg-gradient-to-b from-white to-gray-50 text-gray-900"
       style={{
         fontFamily:
           'Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif',
       }}
     >
       <Header />
-
-      <main>
+      <main className="flex-1">
         <HeroSection />
-
         {/* Portfolio Grid Section */}
         <section className="bg-gray-50">
           <div className="container mx-auto px-6">
             <PortfolioGrid />
           </div>
         </section>
+        {/* <FeaturesSection /> */}
+        {/* <CTASection /> */}
 
-        <FeaturesSection />
-        <CTASection />
+        {/* Spacer to push footer down */}
+        <div className="h-32 md:h-48 lg:h-64"></div>
       </main>
-
       <Footer />
     </div>
   );

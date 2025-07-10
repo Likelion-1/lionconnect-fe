@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Image from "next/image"
-import { Play, Volume2, VolumeX, Info } from "lucide-react"
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import { Play, Volume2, VolumeX, Info } from "lucide-react";
 
 export default function ProjectSlider() {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [isMuted, setIsMuted] = useState(true)
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isMuted, setIsMuted] = useState(true);
 
   const projects = [
     {
@@ -25,28 +25,32 @@ export default function ProjectSlider() {
         "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/%EA%B9%80%EB%8B%A4%ED%9B%88_%ED%8E%B8%EC%A7%91-2r0WD1Xtf97zKuEEqsWLykiMaX2BDU.gif",
       category: "교육 플랫폼",
     },
-  ]
+  ];
 
   const nextSlide = () => {
-    setCurrentIndex((prevIndex) => (prevIndex === projects.length - 1 ? 0 : prevIndex + 1))
-  }
+    setCurrentIndex((prevIndex) =>
+      prevIndex === projects.length - 1 ? 0 : prevIndex + 1
+    );
+  };
 
   const prevSlide = () => {
-    setCurrentIndex((prevIndex) => (prevIndex === 0 ? projects.length - 1 : prevIndex - 1))
-  }
+    setCurrentIndex((prevIndex) =>
+      prevIndex === 0 ? projects.length - 1 : prevIndex - 1
+    );
+  };
 
   // Auto slide every 6 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      nextSlide()
-    }, 6000)
+      nextSlide();
+    }, 6000);
 
-    return () => clearInterval(interval)
-  }, [])
+    return () => clearInterval(interval);
+  }, []);
 
   const getNextIndex = () => {
-    return currentIndex === projects.length - 1 ? 0 : currentIndex + 1
-  }
+    return currentIndex === projects.length - 1 ? 0 : currentIndex + 1;
+  };
 
   return (
     <div className="relative w-full h-full min-h-[500px] flex items-center">
@@ -71,23 +75,32 @@ export default function ProjectSlider() {
             onClick={() => setIsMuted(!isMuted)}
             className="absolute top-4 right-4 w-10 h-10 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-black/70 transition-colors z-10"
           >
-            {isMuted ? <VolumeX size={20} className="text-white" /> : <Volume2 size={20} className="text-white" />}
+            {isMuted ? (
+              <VolumeX size={20} className="text-white" />
+            ) : (
+              <Volume2 size={20} className="text-white" />
+            )}
           </button>
 
           {/* Project info overlay */}
           <div className="absolute bottom-0 left-0 right-0 p-6 space-y-4">
             <div>
-              <h3 className="text-3xl font-bold text-white mb-2">{projects[currentIndex].title}</h3>
-              <p className="text-gray-200 text-base mb-3">{projects[currentIndex].subtitle}</p>
+              <h3 className="text-3xl font-bold text-white mb-2">
+                {projects[currentIndex].title}
+              </h3>
+              <p className="text-gray-200 text-base mb-3">
+                {projects[currentIndex].subtitle}
+              </p>
               <span className="inline-block px-3 py-1 bg-orange-500/20 backdrop-blur-sm text-orange-400 text-sm rounded-full">
                 {projects[currentIndex].category}
               </span>
             </div>
 
-            <p className="text-gray-300 text-sm leading-relaxed max-w-md">{projects[currentIndex].description}</p>
+            <p className="text-gray-300 text-sm leading-relaxed max-w-md">
+              {projects[currentIndex].subtitle}
+            </p>
 
             {/* Action buttons */}
-
           </div>
         </div>
 
@@ -95,7 +108,9 @@ export default function ProjectSlider() {
         <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-700/50">
           <div
             className="h-full bg-orange-500 transition-all duration-300"
-            style={{ width: `${((currentIndex + 1) / projects.length) * 100}%` }}
+            style={{
+              width: `${((currentIndex + 1) / projects.length) * 100}%`,
+            }}
           />
         </div>
       </div>
@@ -119,13 +134,19 @@ export default function ProjectSlider() {
 
           {/* Next indicator */}
           <div className="absolute top-4 left-4">
-            <span className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-sm rounded-full">다음</span>
+            <span className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-sm rounded-full">
+              다음
+            </span>
           </div>
 
           {/* Project info overlay */}
           <div className="absolute bottom-0 left-0 right-0 p-4">
-            <h4 className="text-xl font-bold text-white mb-1">{projects[getNextIndex()].title}</h4>
-            <p className="text-gray-300 text-sm">{projects[getNextIndex()].subtitle}</p>
+            <h4 className="text-xl font-bold text-white mb-1">
+              {projects[getNextIndex()].title}
+            </h4>
+            <p className="text-gray-300 text-sm">
+              {projects[getNextIndex()].subtitle}
+            </p>
           </div>
         </div>
 
@@ -135,9 +156,8 @@ export default function ProjectSlider() {
 
       {/* Navigation dots */}
 
-
       {/* Ambient lighting effect */}
       <div className="absolute -inset-4 bg-gradient-to-r from-orange-500/5 via-transparent to-blue-500/5 rounded-3xl blur-2xl -z-10" />
     </div>
-  )
+  );
 }

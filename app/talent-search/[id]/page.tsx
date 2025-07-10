@@ -1,11 +1,9 @@
 "use client";
-import Header from "@/components/header";
 import Image from "next/image";
 
 export default function TalentDetailPage() {
   return (
     <div className="min-h-screen flex flex-col text-gray-900 bg-white">
-      <Header />
       <main className="flex-1 w-full max-w-3xl mx-auto px-4 py-12">
         {/* 상단 프로필 */}
         <div className="flex flex-col items-center gap-4 mb-8">

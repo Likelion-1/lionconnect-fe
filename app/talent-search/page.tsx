@@ -1,6 +1,5 @@
 "use client";
 
-import Header from "@/components/header";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -48,7 +47,6 @@ export default function TalentSearchPage() {
 
   return (
     <div className="min-h-screen flex flex-col text-gray-900">
-      <Header />
       <main className="flex-1">
         <section className="w-full max-w-6xl mx-auto px-4 py-10">
           <h2 className="text-2xl md:text-3xl font-bold text-orange-500 mb-2 mt-8">

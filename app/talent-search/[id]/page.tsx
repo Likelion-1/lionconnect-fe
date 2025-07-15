@@ -4,7 +4,13 @@ import Image from "next/image";
 export default function TalentDetailPage() {
   return (
     <div className="min-h-screen flex flex-col text-gray-900 bg-white">
-      <main className="flex-1 w-full max-w-3xl mx-auto px-4 py-12">
+      <main className="flex-1 w-full max-w-3xl mx-auto px-4 py-12 mt-10 relative">
+        {/* 커넥트 버튼 - 오른쪽 상단 */}
+        <div className="absolute top-0 right-0 z-10">
+          <button className="px-6 py-2 border border-[#E5E5E5] bg-white text-orange-500 rounded-xl font-semibold text-sm hover:bg-orange-50 transition-colors">
+            커넥트
+          </button>
+        </div>
         {/* 상단 프로필 */}
         <div className="flex flex-col items-center gap-4 mb-8">
           <Image

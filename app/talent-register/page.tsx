@@ -1,11 +1,23 @@
 "use client";
 
 import React, { useState } from "react";
+import { ResumeService, BasicInfoData } from "@/lib/services/resumeService";
+import {
+  PortfolioService,
+  PortfolioData,
+} from "@/lib/services/portfolioService";
+import { AwardService, AwardData } from "@/lib/services/awardService";
+import {
+  EducationService,
+  EducationData,
+} from "@/lib/services/educationService";
+import BasicInfoSection from "@/components/talent-register/BasicInfoSection";
+import PortfolioSection from "@/components/talent-register/PortfolioSection";
+import ProjectSection from "@/components/talent-register/ProjectSection";
 // import Header from "@/components/header"; // 이 줄 삭제
 
 const sidebarItems = [
   "기본 정보(필수)",
-  "자기소개(필수)",
   "포트폴리오(필수)",
   "프로젝트(필수)",
   "수상 및 활동",
@@ -20,6 +32,7 @@ interface Portfolio {
   period: string;
   role: string;
   url: string;
+  isRepresentative: boolean;
 }
 
 const emptyPortfolio: Portfolio = {
@@ -30,6 +43,7 @@ const emptyPortfolio: Portfolio = {
   period: "",
   role: "",
   url: "",
+  isRepresentative: false,
 };
 
 interface Project {
@@ -78,24 +92,34 @@ interface BasicInfo {
   profile: File | null;
   profileUrl: string;
   name: string;
-  contact: string;
   email: string;
-  job: string;
+  phone: string;
+  job_type: string;
+  school: string;
+  major: string;
+  grade: string;
+  period: string;
+  short_intro: string;
+  intro: string;
 }
 const emptyBasicInfo: BasicInfo = {
   profile: null,
   profileUrl: "",
   name: "",
-  contact: "",
   email: "",
-  job: "",
+  phone: "",
+  job_type: "",
+  school: "",
+  major: "",
+  grade: "",
+  period: "",
+  short_intro: "",
+  intro: "",
 };
 
 export default function TalentRegisterPage() {
   const [activeIndex, setActiveIndex] = useState(0);
-  // 자기소개 입력 상태
-  const [coreIntro, setCoreIntro] = useState("");
-  const [selfIntro, setSelfIntro] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   // 포트폴리오 입력 상태 (배열)
   const [portfolios, setPortfolios] = useState<Portfolio[]>([
     { ...emptyPortfolio },
@@ -106,6 +130,37 @@ export default function TalentRegisterPage() {
     { ...emptyEducation },
   ]);
   const [basicInfo, setBasicInfo] = useState<BasicInfo>({ ...emptyBasicInfo });
+
+  // 기본정보 진행률 계산
+  const calculateBasicInfoProgress = () => {
+    const requiredFields = [
+      "name",
+      "phone",
+      "email",
+      "job_type",
+      "school",
+      "major",
+      "grade",
+      "period",
+      "short_intro",
+      "intro",
+    ];
+
+    const filledFields = requiredFields.filter((field) => {
+      const value = basicInfo[field as keyof BasicInfo];
+      return value && value.toString().trim() !== "";
+    });
+
+    return Math.round((filledFields.length / requiredFields.length) * 100);
+  };
+
+  const basicInfoProgress = calculateBasicInfoProgress();
+
+  // 필드가 입력되었는지 확인하는 함수
+  const isFieldFilled = (field: keyof BasicInfo) => {
+    const value = basicInfo[field];
+    return value && value.toString().trim() !== "";
+  };
 
   // 대표 이미지 업로드 핸들러
   const handleImageChange = (
@@ -130,14 +185,16 @@ export default function TalentRegisterPage() {
   const handlePortfolioChange = (
     idx: number,
     field: keyof Portfolio,
-    value: string
+    value: string | boolean
   ) => {
     setPortfolios((prev) => {
       const copy = [...prev];
       if (field === "image" || field === "imageUrl") {
         copy[idx][field] = value as any;
+      } else if (field === "isRepresentative") {
+        copy[idx][field] = value as boolean;
       } else {
-        copy[idx][field] = value;
+        copy[idx][field] = value as string;
       }
       return copy;
     });
@@ -215,11 +272,35 @@ export default function TalentRegisterPage() {
     field: keyof BasicInfo,
     value: string | File | null
   ) => {
-    setBasicInfo((prev) => ({ ...prev, [field]: value }));
+    setBasicInfo((prev) => {
+      if (field === "profile" && value === null) {
+        // 프로필 이미지 제거 시
+        return {
+          ...prev,
+          profile: null,
+          profileUrl: "",
+        };
+      }
+      return { ...prev, [field]: value };
+    });
   };
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // 파일 크기 검사 (5MB 제한)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      alert("파일 크기는 5MB 이하여야 합니다.");
+      return;
+    }
+
+    // 파일 타입 검사
+    if (!file.type.startsWith("image/")) {
+      alert("이미지 파일만 업로드 가능합니다.");
+      return;
+    }
+
     const reader = new FileReader();
     reader.onloadend = () => {
       setBasicInfo((prev) => ({
@@ -231,6 +312,244 @@ export default function TalentRegisterPage() {
     reader.readAsDataURL(file);
   };
 
+  // API 제출 함수들
+  const handleSubmitBasicInfo = async () => {
+    if (isLoading) return; // 중복 요청 방지
+
+    try {
+      setIsLoading(true);
+
+      // 필수 필드 검증
+      const requiredFields = [
+        "name",
+        "email",
+        "phone",
+        "job_type",
+        "school",
+        "major",
+        "grade",
+        "period",
+        "short_intro",
+        "intro",
+      ];
+
+      const missingFields = requiredFields.filter(
+        (field) => !basicInfo[field as keyof BasicInfo]
+      );
+
+      if (missingFields.length > 0) {
+        alert(`다음 필드를 입력해주세요: ${missingFields.join(", ")}`);
+        return;
+      }
+
+      // API 데이터 준비
+      const apiData: BasicInfoData = {
+        profile_image: basicInfo.profile,
+        name: basicInfo.name,
+        email: basicInfo.email,
+        phone: basicInfo.phone,
+        job_type: basicInfo.job_type,
+        school: basicInfo.school,
+        major: basicInfo.major,
+        grade: basicInfo.grade,
+        period: basicInfo.period,
+        short_intro: basicInfo.short_intro,
+        intro: basicInfo.intro,
+      };
+
+      // 페이지에서 API로 전송할 데이터 확인
+      console.log("talent-register/page.tsx에서 API로 전송할 데이터:", apiData);
+
+      const response = await ResumeService.submitBasicInfo(apiData);
+
+      if (response.success) {
+        alert("기본 정보가 성공적으로 저장되었습니다!");
+        // 성공 후 처리 (예: 다음 단계로 이동)
+      } else {
+        alert(`저장 실패: ${response.message}`);
+      }
+    } catch (error) {
+      console.error("제출 중 오류 발생:", error);
+      alert("저장 중 오류가 발생했습니다. 다시 시도해주세요.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 프로젝트 저장 함수 (추후 구현)
+  const handleSubmitProjects = async () => {
+    try {
+      // 프로젝트 데이터 검증 및 저장 로직
+      alert("프로젝트 저장 기능은 추후 구현 예정입니다.");
+    } catch (error) {
+      console.error("프로젝트 저장 중 오류 발생:", error);
+      alert("저장 중 오류가 발생했습니다. 다시 시도해주세요.");
+    }
+  };
+
+  // 수상 및 활동 저장 함수
+  const handleSubmitAwards = async () => {
+    try {
+      // 수상 및 활동 데이터 검증
+      const validAwards = awards.filter(
+        (award) => award.name && award.date && award.org
+      );
+
+      if (validAwards.length === 0) {
+        alert(
+          "저장할 수상 및 활동이 없습니다. 최소 하나의 수상 및 활동을 입력해주세요."
+        );
+        return;
+      }
+
+      // 각 수상 및 활동을 순차적으로 저장
+      for (let i = 0; i < validAwards.length; i++) {
+        const award = validAwards[i];
+
+        // 날짜 형식 변환 (YYYY.MM -> YYYY-MM)
+        const formattedDate = award.date.replace(/\./g, "-");
+
+        const awardData: AwardData = {
+          resume_id: 1, // TODO: 실제 resume_id로 변경 필요
+          name: award.name,
+          date: formattedDate,
+          organization: award.org,
+        };
+
+        const response = await AwardService.submitAward(awardData);
+
+        if (!response.success) {
+          alert(`수상 및 활동 "${award.name}" 저장 실패: ${response.message}`);
+          return;
+        }
+      }
+
+      alert("모든 수상 및 활동이 성공적으로 저장되었습니다!");
+    } catch (error) {
+      console.error("수상 및 활동 저장 중 오류 발생:", error);
+      alert("저장 중 오류가 발생했습니다. 다시 시도해주세요.");
+    }
+  };
+
+  // 교육 저장 함수
+  const handleSubmitEducations = async () => {
+    try {
+      // 교육 데이터 검증
+      const validEducations = educations.filter(
+        (education) => education.org && education.period && education.name
+      );
+
+      if (validEducations.length === 0) {
+        alert("저장할 교육이 없습니다. 최소 하나의 교육을 입력해주세요.");
+        return;
+      }
+
+      // 각 교육을 순차적으로 저장
+      for (let i = 0; i < validEducations.length; i++) {
+        const education = validEducations[i];
+
+        // 기간 형식 변환 (YYYY.MM.~YYYY.MM -> YYYY-MM ~ YYYY-MM)
+        const formattedPeriod = education.period
+          .replace(/\./g, "-")
+          .replace(/~/g, " ~ ");
+
+        const educationData: EducationData = {
+          resume_id: 1, // TODO: 실제 resume_id로 변경 필요
+          institution: education.org,
+          period: formattedPeriod,
+          name: education.name,
+        };
+
+        const response = await EducationService.submitEducation(educationData);
+
+        if (!response.success) {
+          alert(`교육 "${education.name}" 저장 실패: ${response.message}`);
+          return;
+        }
+      }
+
+      alert("모든 교육이 성공적으로 저장되었습니다!");
+    } catch (error) {
+      console.error("교육 저장 중 오류 발생:", error);
+      alert("저장 중 오류가 발생했습니다. 다시 시도해주세요.");
+    }
+  };
+
+  // 포트폴리오 저장 함수
+  const handleSubmitPortfolios = async () => {
+    try {
+      // 포트폴리오 데이터 검증
+      const validPortfolios = portfolios.filter(
+        (portfolio) =>
+          portfolio.name &&
+          portfolio.summary &&
+          portfolio.period &&
+          portfolio.role
+      );
+
+      if (validPortfolios.length === 0) {
+        alert(
+          "저장할 포트폴리오가 없습니다. 최소 하나의 포트폴리오를 입력해주세요."
+        );
+        return;
+      }
+
+      // 각 포트폴리오를 순차적으로 저장
+      for (let i = 0; i < validPortfolios.length; i++) {
+        const portfolio = validPortfolios[i];
+
+        const portfolioData: PortfolioData = {
+          project_name: portfolio.name,
+          project_intro: portfolio.summary,
+          project_period: portfolio.period,
+          role: portfolio.role,
+          project_url: portfolio.url || undefined,
+          image: portfolio.image || undefined,
+          is_representative: portfolio.isRepresentative,
+        };
+
+        const response = await PortfolioService.submitPortfolio(portfolioData);
+
+        if (!response.success) {
+          alert(
+            `포트폴리오 "${portfolio.name}" 저장 실패: ${response.message}`
+          );
+          return;
+        }
+      }
+
+      alert("모든 포트폴리오가 성공적으로 저장되었습니다!");
+    } catch (error) {
+      console.error("포트폴리오 저장 중 오류 발생:", error);
+      alert("저장 중 오류가 발생했습니다. 다시 시도해주세요.");
+    }
+  };
+
+  // 전체 저장 함수 (모든 영역을 순차적으로 저장)
+  const handleSubmitAll = async () => {
+    try {
+      // 1. 기본 정보 저장
+      await handleSubmitBasicInfo();
+
+      // 2. 프로젝트 저장 (추후 구현)
+      // await handleSubmitProjects();
+
+      // 3. 포트폴리오 저장
+      await handleSubmitPortfolios();
+
+      // 4. 수상 및 활동 저장
+      await handleSubmitAwards();
+
+      // 5. 교육 저장
+      await handleSubmitEducations();
+
+      alert("모든 정보가 성공적으로 저장되었습니다!");
+    } catch (error) {
+      console.error("전체 저장 중 오류 발생:", error);
+      alert("저장 중 오류가 발생했습니다. 다시 시도해주세요.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* <Header /> 이 줄 삭제 */}
@@ -240,18 +559,20 @@ export default function TalentRegisterPage() {
         {/* 왼쪽 사이드바 */}
         <aside className="w-64 bg-white rounded-2xl border border-[#E5E5E5] drop-shadow-md p-6 flex flex-col gap-2 h-fit">
           <div className="flex items-center justify-between mb-4">
-            <span className="font-semibold text-sm">기본 정보(필수)</span>
-            <span className="text-orange-500 text-xs font-bold">100%</span>
+            <span className="font-semibold text-sm">이력서 작성</span>
+            <span className="text-orange-500 text-xs font-bold">
+              {basicInfoProgress}%
+            </span>
           </div>
           <ul className="text-[#929292] text-sm space-y-2">
             {sidebarItems.map((item, idx) => (
               <li
                 key={item}
                 onClick={() => setActiveIndex(idx)}
-                className={`cursor-pointer px-4 py-2 rounded-xl border transition-all select-none
+                className={`cursor-pointer px-5 py-3 rounded-xl border transition-all select-none
                   ${
                     activeIndex === idx
-                      ? "bg-[#FFF7ED] border-orange-300 drop-shadow-md text-[#525151] font-semibold"
+                      ? "bg-[#FFF7ED] border-transparent text-[#525151] font-semibold"
                       : "border-transparent hover:bg-orange-50 hover:border-orange-100"
                   }
                 `}
@@ -265,331 +586,40 @@ export default function TalentRegisterPage() {
         <section className="flex-1 bg-white rounded-2xl border border-[#E5E5E5] drop-shadow-md p-8">
           {/* 포트폴리오(필수) 영역일 때만 아래 폼 노출 */}
           {activeIndex === 2 ? (
-            <div className="flex flex-col gap-8">
-              <h2 className="font-semibold text-xl mb-4">포트폴리오</h2>
-              {portfolios.map((portfolio, idx) => (
-                <div
-                  key={idx}
-                  className="relative bg-[#FAFAF9] rounded-2xl border border-[#E5E5E5] p-6 mb-8 drop-shadow-sm"
-                >
-                  {/* 삭제 버튼 */}
-                  {portfolios.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removePortfolio(idx)}
-                      className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full border border-[#E5E5E5] bg-white hover:bg-red-50 text-gray-400 hover:text-red-500 transition"
-                      aria-label="포트폴리오 삭제"
-                    >
-                      -
-                    </button>
-                  )}
-                  {/* 대표 이미지 */}
-                  <div className="mb-6">
-                    <h3 className="font-semibold text-base mb-1">
-                      대표 이미지
-                    </h3>
-                    <p className="text-gray-500 text-sm mb-2">
-                      가이드 사진과 같은 프로젝트 대표 이미지를 등록해주세요
-                    </p>
-                    <div className="flex gap-4">
-                      {portfolio.imageUrl && (
-                        <img
-                          src={portfolio.imageUrl}
-                          alt="대표 이미지 미리보기"
-                          className="w-32 h-32 object-cover rounded-xl border border-[#E5E5E5] bg-white"
-                        />
-                      )}
-                      <label className="w-32 h-32 flex flex-col items-center justify-center border-2 border-dashed border-[#E5E5E5] rounded-xl cursor-pointer bg-white text-gray-400 hover:bg-orange-50 transition">
-                        <span className="text-2xl mb-2">⬆️</span>
-                        <span className="text-xs">대표 이미지 업로드</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => handleImageChange(e, idx)}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                  {/* 프로젝트명 */}
-                  <div className="mb-4">
-                    <h3 className="font-semibold text-base mb-1">프로젝트명</h3>
-                    <input
-                      type="text"
-                      value={portfolio.name}
-                      onChange={(e) =>
-                        handlePortfolioChange(idx, "name", e.target.value)
-                      }
-                      className="w-full rounded-xl border border-[#E5E5E5] bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
-                      placeholder="프로젝트명을 입력해주세요"
-                    />
-                  </div>
-                  {/* 프로젝트 한 줄 소개 */}
-                  <div className="mb-4">
-                    <h3 className="font-semibold text-base mb-1">
-                      프로젝트 한 줄 소개
-                    </h3>
-                    <input
-                      type="text"
-                      value={portfolio.summary}
-                      onChange={(e) =>
-                        handlePortfolioChange(idx, "summary", e.target.value)
-                      }
-                      className="w-full rounded-xl border border-[#E5E5E5] bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
-                      placeholder="한 줄 소개를 입력해주세요"
-                    />
-                  </div>
-                  {/* 프로젝트 기간 & 담당 역할 */}
-                  <div className="flex gap-4 mb-4">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-base mb-1">
-                        프로젝트 기간
-                      </h3>
-                      <input
-                        type="text"
-                        value={portfolio.period}
-                        onChange={(e) =>
-                          handlePortfolioChange(idx, "period", e.target.value)
-                        }
-                        className="w-full rounded-xl border border-[#E5E5E5] bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
-                        placeholder="2025.00.~2025.00"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-base mb-1">
-                        담당 역할
-                      </h3>
-                      <input
-                        type="text"
-                        value={portfolio.role}
-                        onChange={(e) =>
-                          handlePortfolioChange(idx, "role", e.target.value)
-                        }
-                        className="w-full rounded-xl border border-[#E5E5E5] bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
-                        placeholder="프론트엔드"
-                      />
-                    </div>
-                  </div>
-                  {/* 프로젝트 포트폴리오 URL */}
-                  <div className="mb-2">
-                    <h3 className="font-semibold text-base mb-1">
-                      프로젝트 포트폴리오 URL
-                    </h3>
-                    <p className="text-gray-500 text-sm mb-2">
-                      프로젝트가 가장 잘 나타날 수 있는 포트폴리오 URL을
-                      기입해주세요
-                    </p>
-                    <input
-                      type="text"
-                      value={portfolio.url}
-                      onChange={(e) =>
-                        handlePortfolioChange(idx, "url", e.target.value)
-                      }
-                      className="w-full rounded-xl border border-[#E5E5E5] bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
-                      placeholder="URL을 입력해주세요"
-                    />
-                  </div>
-                </div>
-              ))}
-              {/* + 버튼 */}
-              <button
-                type="button"
-                onClick={addPortfolio}
-                className="w-10 h-10 flex items-center justify-center rounded-full border border-[#E5E5E5] bg-white text-orange-500 text-2xl hover:bg-orange-50 transition self-center"
-                aria-label="포트폴리오 추가"
-              >
-                +
-              </button>
-            </div>
+            <PortfolioSection
+              portfolios={portfolios}
+              onImageChange={handleImageChange}
+              onPortfolioChange={handlePortfolioChange}
+              onAddPortfolio={addPortfolio}
+              onRemovePortfolio={removePortfolio}
+              onSubmit={handleSubmitPortfolios}
+            />
           ) : activeIndex === 1 ? (
-            // 자기소개(필수)
-            <div className="flex flex-col gap-8">
-              <div>
-                <h2 className="font-semibold text-xl mb-4">자기소개</h2>
-                <div className="mb-8">
-                  <h3 className="font-semibold text-base mb-2">핵심소개</h3>
-                  <p className="text-gray-500 text-sm mb-2">
-                    본인의 역량을 가장 잘 드러낼 수 있는 핵심 소개를 한 줄로
-                    작성해주세요!
-                  </p>
-                  <div className="relative">
-                    <textarea
-                      maxLength={100}
-                      rows={3}
-                      value={coreIntro}
-                      onChange={(e) => setCoreIntro(e.target.value)}
-                      className="w-full rounded-2xl border border-[#E5E5E5] bg-[#FAFAF9] p-4 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-orange-200"
-                    />
-                    <span className="absolute bottom-2 right-4 text-xs text-gray-400">
-                      {coreIntro.length}/100
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-base mb-2">자기소개</h3>
-                  <p className="text-gray-500 text-sm mb-2">
-                    정량적인 지표를 강조하여 작성해주세요!
-                  </p>
-                  <div className="relative">
-                    <textarea
-                      maxLength={100}
-                      rows={5}
-                      value={selfIntro}
-                      onChange={(e) => setSelfIntro(e.target.value)}
-                      className="w-full rounded-2xl border border-[#E5E5E5] bg-[#FAFAF9] p-4 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-orange-200"
-                      placeholder={`예시 :\n오픈소스 개발을 꿈꾸며 배움을 공유하는 프론트엔드 개발자 00입니다.\n로그인 연장 처리 과정에서 Access Token의 만료시간을 사전 감지하는 React Axios Interceptors 로직을 구현하여 개인 블로그에 문제 프로세스를 정리하였고, 약 5,000명의 조회수와 16개의 좋아요를 달성하며 배움을 공유한 경험이 있습니다.`}
-                    />
-                    <span className="absolute bottom-2 right-4 text-xs text-gray-400">
-                      {selfIntro.length}/100
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ProjectSection
+              projects={projects}
+              onProjectChange={handleProjectChange}
+              onAddProject={addProject}
+              onRemoveProject={removeProject}
+              onSubmit={handleSubmitProjects}
+            />
           ) : activeIndex === 3 ? (
             <div className="flex flex-col gap-8">
-              <div className="flex items-center gap-2 mb-4">
-                <h2 className="font-semibold text-xl">프로젝트</h2>
-                <button
-                  type="button"
-                  onClick={addProject}
-                  className="ml-2 text-2xl text-orange-500 hover:bg-orange-50 rounded-full w-8 h-8 flex items-center justify-center border border-[#E5E5E5]"
-                >
-                  +
-                </button>
-              </div>
-              {projects.map((project, idx) => (
-                <div
-                  key={idx}
-                  className="relative bg-[#FAFAF9] rounded-2xl border border-[#E5E5E5] p-6 mb-8 drop-shadow-sm"
-                >
-                  {/* 삭제 버튼 */}
-                  {projects.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeProject(idx)}
-                      className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full border border-[#E5E5E5] bg-white hover:bg-red-50 text-gray-400 hover:text-red-500 transition"
-                      aria-label="프로젝트 삭제"
-                    >
-                      ✕
-                    </button>
-                  )}
-                  <div className="flex gap-8 mb-4">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-base mb-1">
-                        프로젝트명
-                      </h3>
-                      <input
-                        type="text"
-                        value={project.name}
-                        onChange={(e) =>
-                          handleProjectChange(idx, "name", e.target.value)
-                        }
-                        className="w-full rounded-xl border border-[#E5E5E5] bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
-                        placeholder="프로젝트명을 입력해주세요"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-base mb-1">
-                        프로젝트 기간
-                      </h3>
-                      <input
-                        type="text"
-                        value={project.period}
-                        onChange={(e) =>
-                          handleProjectChange(idx, "period", e.target.value)
-                        }
-                        className="w-full rounded-xl border border-[#E5E5E5] bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
-                        placeholder="2025.00.~2025.00"
-                      />
-                    </div>
-                  </div>
-                  <div className="mb-4">
-                    <h3 className="font-semibold text-base mb-1">
-                      프로젝트 한 줄 소개
-                    </h3>
-                    <input
-                      type="text"
-                      value={project.summary}
-                      onChange={(e) =>
-                        handleProjectChange(idx, "summary", e.target.value)
-                      }
-                      className="w-full rounded-xl border border-[#E5E5E5] bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
-                      placeholder="한 줄 소개를 입력해주세요"
-                    />
-                  </div>
-                  <div className="mb-4">
-                    <h3 className="font-semibold text-base mb-1">구현 내용</h3>
-                    <p className="text-gray-500 text-sm mb-2">
-                      성과+결과 중심으로 한 줄로 작성해주세요
-                    </p>
-                    <textarea
-                      value={project.description}
-                      onChange={(e) =>
-                        handleProjectChange(idx, "description", e.target.value)
-                      }
-                      rows={3}
-                      className="w-full rounded-xl border border-[#E5E5E5] bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200 mb-2 resize-none"
-                      placeholder="예시 :&#10;• Redux-toolkit을 활용한 비동기 통신 및 전역 상태관리&#10;• 방문자 335명 유입 및 40여명의 유지 모집"
-                    />
-                  </div>
-                  <div className="flex gap-4 mb-4">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-base mb-1">
-                        담당 역할
-                      </h3>
-                      <input
-                        type="text"
-                        value={project.role}
-                        onChange={(e) =>
-                          handleProjectChange(idx, "role", e.target.value)
-                        }
-                        className="w-full rounded-xl border border-[#E5E5E5] bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
-                        placeholder="프론트엔드"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-base mb-1">
-                        기술 스택
-                      </h3>
-                      <input
-                        type="text"
-                        value={project.stack}
-                        onChange={(e) =>
-                          handleProjectChange(idx, "stack", e.target.value)
-                        }
-                        className="w-full rounded-xl border border-[#E5E5E5] bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
-                        placeholder="React, TypeScript, JavaScript"
-                      />
-                    </div>
-                  </div>
-                  <div className="mb-2">
-                    <h3 className="font-semibold text-base mb-1">
-                      프로젝트 깃허브 URL
-                    </h3>
-                    <input
-                      type="text"
-                      value={project.github}
-                      onChange={(e) =>
-                        handleProjectChange(idx, "github", e.target.value)
-                      }
-                      className="w-full rounded-xl border border-[#E5E5E5] bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
-                      placeholder="깃허브 URL을 입력해주세요"
-                    />
-                  </div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <h2 className="font-semibold text-xl">수상 및 자격 내역</h2>
+                  <button
+                    type="button"
+                    onClick={addAward}
+                    className="ml-2 text-2xl text-orange-500 hover:bg-orange-50 rounded-full w-8 h-8 flex items-center justify-center border border-[#E5E5E5]"
+                  >
+                    +
+                  </button>
                 </div>
-              ))}
-            </div>
-          ) : activeIndex === 4 ? (
-            <div className="flex flex-col gap-8">
-              <div className="flex items-center gap-2 mb-4">
-                <h2 className="font-semibold text-xl">수상 및 자격 내역</h2>
                 <button
-                  type="button"
-                  onClick={addAward}
-                  className="ml-2 text-2xl text-orange-500 hover:bg-orange-50 rounded-full w-8 h-8 flex items-center justify-center border border-[#E5E5E5]"
+                  onClick={handleSubmitAwards}
+                  className="px-6 py-2 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition"
                 >
-                  +
+                  저장
                 </button>
               </div>
               {awards.map((award, idx) => (
@@ -651,16 +681,24 @@ export default function TalentRegisterPage() {
                 </div>
               ))}
             </div>
-          ) : activeIndex === 5 ? (
+          ) : activeIndex === 4 ? (
             <div className="flex flex-col gap-8">
-              <div className="flex items-center gap-2 mb-4">
-                <h2 className="font-semibold text-xl">교육</h2>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <h2 className="font-semibold text-xl">교육</h2>
+                  <button
+                    type="button"
+                    onClick={addEducation}
+                    className="ml-2 text-2xl text-orange-500 hover:bg-orange-50 rounded-full w-8 h-8 flex items-center justify-center border border-[#E5E5E5]"
+                  >
+                    +
+                  </button>
+                </div>
                 <button
-                  type="button"
-                  onClick={addEducation}
-                  className="ml-2 text-2xl text-orange-500 hover:bg-orange-50 rounded-full w-8 h-8 flex items-center justify-center border border-[#E5E5E5]"
+                  onClick={handleSubmitEducations}
+                  className="px-6 py-2 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition"
                 >
-                  +
+                  저장
                 </button>
               </div>
               {educations.map((edu, idx) => (
@@ -732,81 +770,14 @@ export default function TalentRegisterPage() {
             </div>
           ) : // 기본 정보 영역일 때만 아래 폼 노출
           activeIndex === 0 ? (
-            <div className="flex flex-col gap-8">
-              <h2 className="font-semibold text-xl mb-4">기본 정보</h2>
-              <div>
-                <h3 className="font-semibold text-base mb-2">프로필</h3>
-                <div className="flex flex-col items-center mb-6">
-                  {basicInfo.profileUrl ? (
-                    <img
-                      src={basicInfo.profileUrl}
-                      alt="프로필 미리보기"
-                      className="w-48 h-36 object-cover rounded-xl border border-[#E5E5E5] bg-gray-200"
-                    />
-                  ) : (
-                    <label className="w-48 h-36 flex flex-col items-center justify-center border border-[#E5E5E5] bg-gray-200 rounded-xl cursor-pointer text-gray-400">
-                      <span>프로필 이미지 업로드</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleProfileChange}
-                      />
-                    </label>
-                  )}
-                </div>
-              </div>
-              <form className="w-full max-w-xl flex flex-col gap-6">
-                <div>
-                  <label className="block text-gray-700 mb-1">이름</label>
-                  <input
-                    type="text"
-                    value={basicInfo.name}
-                    onChange={(e) =>
-                      handleBasicInfoChange("name", e.target.value)
-                    }
-                    className="w-full rounded-xl border border-[#E5E5E5] bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
-                    placeholder="이름"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-700 mb-1">연락처</label>
-                  <input
-                    type="text"
-                    value={basicInfo.contact}
-                    onChange={(e) =>
-                      handleBasicInfoChange("contact", e.target.value)
-                    }
-                    className="w-full rounded-xl border border-[#E5E5E5] bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
-                    placeholder="연락처"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-700 mb-1">이메일</label>
-                  <input
-                    type="email"
-                    value={basicInfo.email}
-                    onChange={(e) =>
-                      handleBasicInfoChange("email", e.target.value)
-                    }
-                    className="w-full rounded-xl border border-[#E5E5E5] bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
-                    placeholder="이메일"
-                  />
-                </div>
-                <div className="w-1/2">
-                  <label className="block text-gray-700 mb-1">직종</label>
-                  <input
-                    type="text"
-                    value={basicInfo.job}
-                    onChange={(e) =>
-                      handleBasicInfoChange("job", e.target.value)
-                    }
-                    className="w-full rounded-xl border border-[#E5E5E5] bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
-                    placeholder="직종"
-                  />
-                </div>
-              </form>
-            </div>
+            <BasicInfoSection
+              basicInfo={basicInfo}
+              onBasicInfoChange={handleBasicInfoChange}
+              onProfileChange={handleProfileChange}
+              onSubmit={handleSubmitBasicInfo}
+              isLoading={isLoading}
+              isFieldFilled={isFieldFilled}
+            />
           ) : (
             // 다른 영역은 기존 폼 또는 placeholder
             <div className="flex flex-col items-center gap-6">
@@ -868,8 +839,11 @@ export default function TalentRegisterPage() {
           <button className="w-28 h-12 border border-orange-100 rounded-2xl text-orange-500 font-semibold bg-white hover:bg-orange-50 transition">
             임시 저장
           </button>
-          <button className="w-32 h-12 rounded-2xl bg-orange-500 text-white font-semibold hover:bg-orange-600 transition">
-            이력서 저장
+          <button
+            onClick={handleSubmitAll}
+            className="w-32 h-12 rounded-2xl bg-orange-500 text-white font-semibold hover:bg-orange-600 transition"
+          >
+            전체 저장
           </button>
         </div>
       </footer>

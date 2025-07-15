@@ -9,6 +9,14 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-}
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: "https://lionconnect-backend.onrender.com/:path*",
+      },
+    ];
+  },
+};
 
-export default nextConfig
+export default nextConfig;

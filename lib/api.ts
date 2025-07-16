@@ -1,7 +1,7 @@
 const axios = require("axios");
 
 // API 기본 설정
-const API_BASE_URL = "/api";
+export const API_BASE_URL = "https://lionconnect-backend.onrender.com";
 
 // axios 인스턴스 생성
 export const apiClient = axios.create({
@@ -28,7 +28,7 @@ apiClient.interceptors.request.use(
       console.log("FormData 감지됨 - Content-Type 제거");
 
       // FormData 내용 확인
-      console.log("FormData 내용 확인:");
+      console.log("=== API 요청 FormData 내용 ===");
       let hasData = false;
       for (let [key, value] of config.data.entries()) {
         console.log(`${key}:`, value);
@@ -36,6 +36,7 @@ apiClient.interceptors.request.use(
       }
       console.log("FormData에 데이터가 있음:", hasData);
       console.log("FormData 크기:", Array.from(config.data.entries()).length);
+      console.log("=== API 요청 FormData 내용 끝 ===");
     } else if (!config.headers["Content-Type"]) {
       // JSON 데이터인 경우
       config.headers["Content-Type"] = "application/json";
@@ -53,7 +54,7 @@ apiClient.interceptors.request.use(
         data: config.data,
       });
       console.log("실제 요청 URL:", `${API_BASE_URL}${config.url}`);
-      console.log("프록시 대상:", "https://lionconnect-backend.onrender.com");
+      // console.log("프록시 대상:", "https://lionconnect-backend.onrender.com");
     }
 
     // 토큰이 있다면 헤더에 추가

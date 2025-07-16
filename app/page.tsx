@@ -38,7 +38,7 @@ export default function HomePage() {
         {/* <CTASection /> */}
 
         {/* Spacer to push footer down */}
-        <div className="h-32 md:h-48 lg:h-64"></div>
+        <div className="h-16 md:h-24 lg:h-32"></div>
       </main>
       <Footer />
     </div>

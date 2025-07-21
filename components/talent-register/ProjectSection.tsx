@@ -9,7 +9,6 @@ interface Project {
   description: string;
   role: string;
   stack: string;
-  github: string;
 }
 
 interface ProjectSectionProps {
@@ -125,18 +124,6 @@ export default function ProjectSection({
                 placeholder="React, TypeScript, JavaScript"
               />
             </div>
-          </div>
-          <div className="mb-2">
-            <h3 className="font-semibold text-base mb-1">
-              프로젝트 깃허브 URL
-            </h3>
-            <input
-              type="text"
-              value={project.github}
-              onChange={(e) => onProjectChange(idx, "github", e.target.value)}
-              className="w-full rounded-xl border border-[#E5E5E5] bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
-              placeholder="깃허브 URL을 입력해주세요"
-            />
           </div>
         </div>
       ))}

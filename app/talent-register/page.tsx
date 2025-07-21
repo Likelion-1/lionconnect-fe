@@ -60,7 +60,6 @@ interface Project {
   description: string;
   role: string;
   stack: string;
-  github: string;
 }
 
 const emptyProject: Project = {
@@ -70,7 +69,6 @@ const emptyProject: Project = {
   description: "",
   role: "",
   stack: "",
-  github: "",
 };
 
 interface Award {

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Search, ChevronRight } from "lucide-react";
+import { ConnectRequestService } from "@/lib/services/connectRequestService";
 
 interface ConnectFormData {
   career_level: string;
@@ -19,26 +20,247 @@ interface ConnectFormData {
   user_id: number;
 }
 
-const DUMMY_PROJECTS = Array.from({ length: 30 }).map((_, i) => ({
-  id: i + 1,
-  name: `김멋사${i + 1}`,
-  role: "프론트엔드",
-  intro: "클린아키텍처를 설계하며 코딩하는 개발자입니다.",
-  projectImg: i % 2 === 0 ? "/images/Frame.png" : "/images/Preview.png",
-  projectName: "토도동",
-  projectDesc: "농구 경기를 볼 수 있는 서비스 입니다.",
-  points: [
-    "Redux Hooks를 활용한 000개선",
-    "클린아키텍처를 적용하여 코드 효율 달성",
-    "Vercel을 활용한 배포",
-  ],
-}));
+const DUMMY_PROJECTS = [
+  // 프론트엔드
+  {
+    id: 1,
+    name: "김프론트",
+    role: "프론트엔드",
+    intro: "React와 TypeScript를 활용한 모던 웹 개발자입니다.",
+    projectImg: "/images/Frame.png",
+    projectName: "토도동",
+    projectDesc: "농구 경기를 볼 수 있는 서비스 입니다.",
+    points: [
+      "Redux Hooks를 활용한 000개선",
+      "클린아키텍처를 적용하여 코드 효율 달성",
+      "Vercel을 활용한 배포",
+    ],
+  },
+  {
+    id: 2,
+    name: "이리액트",
+    role: "프론트엔드",
+    intro: "사용자 경험을 중시하는 프론트엔드 개발자입니다.",
+    projectImg: "/images/Preview.png",
+    projectName: "쇼핑몰",
+    projectDesc: "온라인 쇼핑몰 플랫폼입니다.",
+    points: [
+      "Vue.js를 활용한 SPA 개발",
+      "반응형 웹 디자인 구현",
+      "성능 최적화",
+    ],
+  },
+  {
+    id: 3,
+    name: "박웹",
+    role: "프론트엔드",
+    intro: "Next.js와 Tailwind CSS를 활용한 개발자입니다.",
+    projectImg: "/images/Frame.png",
+    projectName: "블로그",
+    projectDesc: "개인 블로그 플랫폼입니다.",
+    points: ["SSR/SSG 구현", "SEO 최적화", "다크모드 지원"],
+  },
+
+  // 백엔드
+  {
+    id: 4,
+    name: "최백엔드",
+    role: "백엔드",
+    intro: "Spring Boot와 JPA를 활용한 백엔드 개발자입니다.",
+    projectImg: "/images/Preview.png",
+    projectName: "API 서버",
+    projectDesc: "RESTful API 서버입니다.",
+    points: ["Spring Security 구현", "JWT 인증 시스템", "데이터베이스 설계"],
+  },
+  {
+    id: 5,
+    name: "정서버",
+    role: "백엔드",
+    intro: "Node.js와 Express를 활용한 백엔드 개발자입니다.",
+    projectImg: "/images/Frame.png",
+    projectName: "채팅 서버",
+    projectDesc: "실시간 채팅 서버입니다.",
+    points: ["Socket.io 구현", "Redis 캐싱", "마이크로서비스 아키텍처"],
+  },
+  {
+    id: 6,
+    name: "한API",
+    role: "백엔드",
+    intro: "Python Django를 활용한 백엔드 개발자입니다.",
+    projectImg: "/images/Preview.png",
+    projectName: "관리 시스템",
+    projectDesc: "회사 관리 시스템입니다.",
+    points: ["Django REST Framework", "PostgreSQL 연동", "AWS 배포"],
+  },
+
+  // 클라우드 엔지니어링
+  {
+    id: 7,
+    name: "김클라우드",
+    role: "클라우드 엔지니어링",
+    intro: "AWS와 Docker를 활용한 클라우드 엔지니어입니다.",
+    projectImg: "/images/Frame.png",
+    projectName: "인프라 구축",
+    projectDesc: "클라우드 인프라 구축 프로젝트입니다.",
+    points: ["AWS EC2, S3 활용", "Docker 컨테이너화", "CI/CD 파이프라인 구축"],
+  },
+  {
+    id: 8,
+    name: "이도커",
+    role: "클라우드 엔지니어링",
+    intro: "Kubernetes와 Terraform을 활용한 DevOps 엔지니어입니다.",
+    projectImg: "/images/Preview.png",
+    projectName: "오케스트레이션",
+    projectDesc: "쿠버네티스 클러스터 관리 시스템입니다.",
+    points: ["K8s 클러스터 관리", "Terraform IaC", "모니터링 시스템 구축"],
+  },
+
+  // 데이터분석
+  {
+    id: 9,
+    name: "박데이터",
+    role: "데이터분석",
+    intro: "Python과 Pandas를 활용한 데이터 분석가입니다.",
+    projectImg: "/images/Frame.png",
+    projectName: "데이터 분석",
+    projectDesc: "고객 데이터 분석 프로젝트입니다.",
+    points: [
+      "Pandas, NumPy 활용",
+      "시각화 라이브러리 사용",
+      "머신러닝 모델 개발",
+    ],
+  },
+  {
+    id: 10,
+    name: "최분석",
+    role: "데이터분석",
+    intro: "R과 Tableau를 활용한 데이터 사이언티스트입니다.",
+    projectImg: "/images/Preview.png",
+    projectName: "BI 대시보드",
+    projectDesc: "비즈니스 인텔리전스 대시보드입니다.",
+    points: ["R 통계 분석", "Tableau 시각화", "예측 모델링"],
+  },
+
+  // 게임 개발
+  {
+    id: 11,
+    name: "정게임",
+    role: "게임 개발",
+    intro: "Unity와 C#을 활용한 게임 개발자입니다.",
+    projectImg: "/images/Frame.png",
+    projectName: "모바일 게임",
+    projectDesc: "2D 모바일 게임입니다.",
+    points: ["Unity 엔진 활용", "C# 스크립팅", "게임 로직 구현"],
+  },
+  {
+    id: 12,
+    name: "한게임",
+    role: "게임 개발",
+    intro: "Unreal Engine을 활용한 게임 개발자입니다.",
+    projectImg: "/images/Preview.png",
+    projectName: "3D 게임",
+    projectDesc: "3D 액션 게임입니다.",
+    points: ["Unreal Engine 5", "블루프린트 시스템", "3D 모델링 연동"],
+  },
+
+  // UI/UX
+  {
+    id: 13,
+    name: "김디자인",
+    role: "UI/UX",
+    intro: "Figma와 Adobe XD를 활용한 UI/UX 디자이너입니다.",
+    projectImg: "/images/Frame.png",
+    projectName: "앱 디자인",
+    projectDesc: "모바일 앱 UI/UX 디자인입니다.",
+    points: ["Figma 프로토타이핑", "사용자 리서치", "디자인 시스템 구축"],
+  },
+  {
+    id: 14,
+    name: "이UX",
+    role: "UI/UX",
+    intro: "사용자 경험을 중시하는 UX 디자이너입니다.",
+    projectImg: "/images/Preview.png",
+    projectName: "웹사이트 리뉴얼",
+    projectDesc: "기업 웹사이트 UX 개선 프로젝트입니다.",
+    points: ["사용자 인터뷰", "퍼소나 설계", "A/B 테스트"],
+  },
+
+  // 안드로이드
+  {
+    id: 15,
+    name: "박안드로이드",
+    role: "안드로이드",
+    intro: "Kotlin과 Android Studio를 활용한 안드로이드 개발자입니다.",
+    projectImg: "/images/Frame.png",
+    projectName: "모바일 앱",
+    projectDesc: "안드로이드 네이티브 앱입니다.",
+    points: ["Kotlin 개발", "MVVM 아키텍처", "Google Play 배포"],
+  },
+  {
+    id: 16,
+    name: "최모바일",
+    role: "안드로이드",
+    intro: "React Native를 활용한 크로스 플랫폼 개발자입니다.",
+    projectImg: "/images/Preview.png",
+    projectName: "하이브리드 앱",
+    projectDesc: "React Native 크로스 플랫폼 앱입니다.",
+    points: ["React Native", "JavaScript/TypeScript", "iOS/Android 동시 개발"],
+  },
+
+  // iOS
+  {
+    id: 17,
+    name: "정iOS",
+    role: "iOS",
+    intro: "Swift와 Xcode를 활용한 iOS 개발자입니다.",
+    projectImg: "/images/Frame.png",
+    projectName: "iOS 앱",
+    projectDesc: "iOS 네이티브 앱입니다.",
+    points: ["Swift 개발", "UIKit/SwiftUI", "App Store 배포"],
+  },
+  {
+    id: 18,
+    name: "한애플",
+    role: "iOS",
+    intro: "iOS 생태계에 특화된 개발자입니다.",
+    projectImg: "/images/Preview.png",
+    projectName: "iOS 게임",
+    projectDesc: "iOS 게임 앱입니다.",
+    points: ["SpriteKit 활용", "게임 로직 구현", "인앱 결제 시스템"],
+  },
+
+  // 추가 데이터 (기존 30개 유지)
+  ...Array.from({ length: 12 }).map((_, i) => ({
+    id: 19 + i,
+    name: `김멋사${19 + i}`,
+    role: [
+      "프론트엔드",
+      "백엔드",
+      "클라우드 엔지니어링",
+      "데이터분석",
+      "게임 개발",
+      "UI/UX",
+      "안드로이드",
+      "iOS",
+    ][i % 8],
+    intro: "클린아키텍처를 설계하며 코딩하는 개발자입니다.",
+    projectImg: i % 2 === 0 ? "/images/Frame.png" : "/images/Preview.png",
+    projectName: "토도동",
+    projectDesc: "농구 경기를 볼 수 있는 서비스 입니다.",
+    points: [
+      "Redux Hooks를 활용한 000개선",
+      "클린아키텍처를 적용하여 코드 효율 달성",
+      "Vercel을 활용한 배포",
+    ],
+  })),
+];
 
 export default function TalentSearchPage() {
   const [visibleCount, setVisibleCount] = useState(4);
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("전체");
   const loaderRef = useRef<HTMLDivElement>(null);
 
   const [formData, setFormData] = useState<ConnectFormData>({
@@ -55,6 +277,12 @@ export default function TalentSearchPage() {
     user_id: 1,
   });
 
+  // 카테고리 필터링된 프로젝트
+  const filteredProjects =
+    selectedCategory === "전체"
+      ? DUMMY_PROJECTS
+      : DUMMY_PROJECTS.filter((project) => project.role === selectedCategory);
+
   const handleInputChange = (field: keyof ConnectFormData, value: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -70,25 +298,53 @@ export default function TalentSearchPage() {
     setIsModalOpen(true);
   };
 
+  const handleCategoryClick = (category: string) => {
+    setSelectedCategory(category);
+    setVisibleCount(4); // 카테고리 변경 시 표시 개수 초기화
+  };
+
   const handleSubmit = async () => {
     try {
-      console.log("커넥트 요청 데이터:", formData);
-      // TODO: API 호출 로직 추가
-      alert("커넥트 요청이 성공적으로 전송되었습니다!");
-      setIsModalOpen(false);
-      setFormData({
-        career_level: "",
-        company_name: "",
-        company_representative_email: "",
-        company_representative_name: "",
-        company_representative_phone: "",
-        employment_type: "",
-        job_description: "",
-        message: "",
-        position: "",
-        required_stack: "",
-        user_id: 1,
-      });
+      // localStorage에서 user_id 가져오기
+      const savedUserId = localStorage.getItem("userId");
+      const currentUserId = savedUserId ? parseInt(savedUserId) : null;
+
+      if (!currentUserId) {
+        alert("사용자 정보를 찾을 수 없습니다. 로그인 후 다시 시도해주세요.");
+        return;
+      }
+
+      // user_id를 현재 로그인한 사용자 ID로 설정
+      const requestData = {
+        ...formData,
+        user_id: currentUserId,
+      };
+
+      console.log("커넥트 요청 데이터:", requestData);
+
+      const response = await ConnectRequestService.submitConnectRequest(
+        requestData
+      );
+
+      if (response.success) {
+        alert(response.message);
+        setIsModalOpen(false);
+        setFormData({
+          career_level: "",
+          company_name: "",
+          company_representative_email: "",
+          company_representative_name: "",
+          company_representative_phone: "",
+          employment_type: "",
+          job_description: "",
+          message: "",
+          position: "",
+          required_stack: "",
+          user_id: 1,
+        });
+      } else {
+        alert(response.message);
+      }
     } catch (error) {
       console.error("커넥트 요청 실패:", error);
       alert("커넥트 요청에 실패했습니다. 다시 시도해주세요.");
@@ -99,11 +355,14 @@ export default function TalentSearchPage() {
     if (!loaderRef.current) return;
     const observer = new window.IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && visibleCount < DUMMY_PROJECTS.length) {
+        if (
+          entries[0].isIntersecting &&
+          visibleCount < filteredProjects.length
+        ) {
           setLoading(true);
           setTimeout(() => {
             setVisibleCount((prev) =>
-              Math.min(prev + 8, DUMMY_PROJECTS.length)
+              Math.min(prev + 8, filteredProjects.length)
             );
             setLoading(false);
           }, 600);
@@ -113,7 +372,7 @@ export default function TalentSearchPage() {
     );
     observer.observe(loaderRef.current);
     return () => observer.disconnect();
-  }, [visibleCount]);
+  }, [visibleCount, filteredProjects.length]);
 
   return (
     <div className="min-h-screen flex flex-col text-gray-900">
@@ -414,6 +673,7 @@ export default function TalentSearchPage() {
             {/* 카테고리 필터 */}
             <div className="flex flex-wrap gap-2">
               {[
+                "전체",
                 "프론트엔드",
                 "백엔드",
                 "클라우드 엔지니어링",
@@ -422,11 +682,12 @@ export default function TalentSearchPage() {
                 "UI/UX",
                 "안드로이드",
                 "iOS",
-              ].map((cat, i) => (
+              ].map((cat) => (
                 <button
                   key={cat}
+                  onClick={() => handleCategoryClick(cat)}
                   className={`px-4 py-2 rounded-full border text-sm font-medium transition-colors ${
-                    i === 3
+                    selectedCategory === cat
                       ? "bg-orange-100 text-orange-500 border-orange-300"
                       : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
                   }`}
@@ -452,7 +713,7 @@ export default function TalentSearchPage() {
 
           {/* 인재 카드 리스트 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-10 mb-26">
-            {DUMMY_PROJECTS.slice(0, visibleCount).map((item) => (
+            {filteredProjects.slice(0, visibleCount).map((item) => (
               <Link
                 key={item.id}
                 href={`/talent-search/${item.id}`}

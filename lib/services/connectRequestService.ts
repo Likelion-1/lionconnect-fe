@@ -1,82 +1,89 @@
-import { apiClient } from "@/lib/api";
+import { API_BASE_URL } from "@/lib/api";
 
 export interface ConnectRequestData {
-  company_user_id: number;
-  student_user_id: number;
-  portfolio_id: number;
-  message?: string;
-  position?: string;
-  job_description?: string;
-  required_stack?: string;
-  career_level?: string;
-  employment_type?: string;
+  career_level: string;
+  company_name: string;
+  company_representative_email: string;
+  company_representative_name: string;
+  company_representative_phone: string;
+  employment_type: string;
+  job_description: string;
+  message: string;
+  position: string;
+  required_stack: string;
+  user_id: number;
 }
 
 export interface ConnectRequestResponse {
+  id: number;
+  user_id: number;
+  portfolio_id: number;
+  company_representative_name: string;
+  company_representative_email: string;
+  company_representative_phone: string;
+  company_name: string;
+  message: string;
+  position: string;
+  job_description: string;
+  required_stack: string;
+  career_level: string;
+  employment_type: string;
+  created_at: string;
+}
+
+export interface ConnectRequestResponseData {
   success: boolean;
   message: string;
-  data?: any;
+  data?: ConnectRequestResponse;
 }
 
 export class ConnectRequestService {
   static async submitConnectRequest(
     requestData: ConnectRequestData
-  ): Promise<ConnectRequestResponse> {
+  ): Promise<ConnectRequestResponseData> {
     try {
-      const response = await apiClient.post(
-        "/talents/connect-request/",
-        requestData
-      );
+      const response = await fetch(`${API_BASE_URL}/connect/request`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestData),
+      });
 
-      if (response.status === 200) {
+      const responseData = await response.json();
+
+      if (response.status === 201) {
         return {
           success: true,
-          message: "연결 요청 생성 성공",
-          data: response.data,
+          message: "커넥트 요청이 성공적으로 전송되었습니다.",
+          data: responseData,
+        };
+      } else if (response.status === 400) {
+        return {
+          success: false,
+          message: "잘못된 데이터 또는 중복 요청입니다.",
+        };
+      } else if (response.status === 404) {
+        return {
+          success: false,
+          message: "수료생을 찾을 수 없습니다.",
+        };
+      } else if (response.status === 422) {
+        return {
+          success: false,
+          message: "입력 데이터가 올바르지 않습니다.",
+        };
+      } else {
+        return {
+          success: false,
+          message: "커넥트 요청 전송에 실패했습니다.",
         };
       }
-
+    } catch (error) {
+      console.error("커넥트 요청 API 호출 실패:", error);
       return {
         success: false,
-        message: "알 수 없는 오류가 발생했습니다.",
-      };
-    } catch (error: any) {
-      console.error("Connect request submission error:", error);
-
-      if (error.response) {
-        const status = error.response.status;
-        const message =
-          error.response.data?.message || "알 수 없는 오류가 발생했습니다.";
-
-        switch (status) {
-          case 400:
-            return {
-              success: false,
-              message:
-                "중복 요청이거나 잘못된 데이터입니다. 입력 정보를 확인해주세요.",
-            };
-          case 422:
-            return {
-              success: false,
-              message:
-                "입력 정보가 올바르지 않습니다. 필수 항목을 확인해주세요.",
-            };
-          case 500:
-            return {
-              success: false,
-              message: "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
-            };
-          default:
-            return {
-              success: false,
-              message: message,
-            };
-        }
-      }
-
-      return {
-        success: false,
-        message: "네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.",
+        message: "네트워크 오류가 발생했습니다. 다시 시도해주세요.",
       };
     }
   }

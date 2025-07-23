@@ -1,6 +1,7 @@
 "use client";
 import Image from "next/image";
 import { useState } from "react";
+import { ConnectRequestService } from "@/lib/services/connectRequestService";
 
 interface ConnectFormData {
   career_level: string;
@@ -41,23 +42,46 @@ export default function TalentDetailPage() {
 
   const handleSubmit = async () => {
     try {
-      console.log("커넥트 요청 데이터:", formData);
-      // TODO: API 호출 로직 추가
-      alert("커넥트 요청이 성공적으로 전송되었습니다!");
-      setIsModalOpen(false);
-      setFormData({
-        career_level: "",
-        company_name: "",
-        company_representative_email: "",
-        company_representative_name: "",
-        company_representative_phone: "",
-        employment_type: "",
-        job_description: "",
-        message: "",
-        position: "",
-        required_stack: "",
-        user_id: 1,
-      });
+      // localStorage에서 user_id 가져오기
+      const savedUserId = localStorage.getItem("userId");
+      const currentUserId = savedUserId ? parseInt(savedUserId) : null;
+
+      if (!currentUserId) {
+        alert("사용자 정보를 찾을 수 없습니다. 로그인 후 다시 시도해주세요.");
+        return;
+      }
+
+      // user_id를 현재 로그인한 사용자 ID로 설정
+      const requestData = {
+        ...formData,
+        user_id: currentUserId,
+      };
+
+      console.log("커넥트 요청 데이터:", requestData);
+
+      const response = await ConnectRequestService.submitConnectRequest(
+        requestData
+      );
+
+      if (response.success) {
+        alert(response.message);
+        setIsModalOpen(false);
+        setFormData({
+          career_level: "",
+          company_name: "",
+          company_representative_email: "",
+          company_representative_name: "",
+          company_representative_phone: "",
+          employment_type: "",
+          job_description: "",
+          message: "",
+          position: "",
+          required_stack: "",
+          user_id: 1,
+        });
+      } else {
+        alert(response.message);
+      }
     } catch (error) {
       console.error("커넥트 요청 실패:", error);
       alert("커넥트 요청에 실패했습니다. 다시 시도해주세요.");

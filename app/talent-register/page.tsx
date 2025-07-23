@@ -132,6 +132,14 @@ export default function TalentRegisterPage() {
   const [awardIds, setAwardIds] = useState<number[]>([]);
   const [educationIds, setEducationIds] = useState<number[]>([]);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+  // 각 섹션의 저장 완료 상태
+  const [savedSections, setSavedSections] = useState({
+    basicInfo: false,
+    projects: false,
+    portfolios: false,
+    awards: false,
+    education: false,
+  });
   // 포트폴리오 입력 상태 (배열)
   const [portfolios, setPortfolios] = useState<Portfolio[]>([
     { ...emptyPortfolio },
@@ -552,6 +560,7 @@ export default function TalentRegisterPage() {
           console.log("저장된 resume_id:", responseData.id);
         }
         alert("기본 정보가 성공적으로 저장되었습니다!");
+        setSavedSections((prev) => ({ ...prev, basicInfo: true }));
         // 성공 후 처리 (예: 다음 단계로 이동)
       } else {
         alert(`저장 실패: ${response.message}`);
@@ -632,6 +641,7 @@ export default function TalentRegisterPage() {
       }
 
       alert("모든 프로젝트가 성공적으로 저장되었습니다!");
+      setSavedSections((prev) => ({ ...prev, projects: true }));
     } catch (error) {
       console.error("프로젝트 저장 중 오류 발생:", error);
       alert("저장 중 오류가 발생했습니다. 다시 시도해주세요.");
@@ -695,6 +705,7 @@ export default function TalentRegisterPage() {
       }
 
       alert("모든 수상 및 활동이 성공적으로 저장되었습니다!");
+      setSavedSections((prev) => ({ ...prev, awards: true }));
     } catch (error) {
       console.error("수상 및 활동 저장 중 오류 발생:", error);
       alert("저장 중 오류가 발생했습니다. 다시 시도해주세요.");
@@ -704,6 +715,15 @@ export default function TalentRegisterPage() {
   // 교육 저장 함수
   const handleSubmitEducations = async () => {
     try {
+      // localStorage에서 user_id 불러오기
+      const savedUserId = localStorage.getItem("userId");
+      const currentUserId = savedUserId ? parseInt(savedUserId) : null;
+
+      if (!currentUserId) {
+        alert("사용자 정보를 찾을 수 없습니다. 기본 정보를 먼저 저장해주세요.");
+        return;
+      }
+
       // 교육 데이터 검증
       const validEducations = educations.filter(
         (education) => education.org && education.period && education.name
@@ -725,7 +745,7 @@ export default function TalentRegisterPage() {
 
         const educationData: EducationData = {
           resume_id: resumeId || 1, // 저장된 resume_id 사용
-          user_id: userId || undefined, // 저장된 user_id 사용
+          user_id: currentUserId, // localStorage에서 불러온 user_id 사용
           institution: education.org,
           period: formattedPeriod,
           name: education.name,
@@ -749,6 +769,7 @@ export default function TalentRegisterPage() {
       }
 
       alert("모든 교육이 성공적으로 저장되었습니다!");
+      setSavedSections((prev) => ({ ...prev, education: true }));
     } catch (error) {
       console.error("교육 저장 중 오류 발생:", error);
       alert("저장 중 오류가 발생했습니다. 다시 시도해주세요.");
@@ -833,6 +854,7 @@ export default function TalentRegisterPage() {
       console.log("저장된 포트폴리오 ID들:", savedPortfolioIds);
 
       alert("모든 포트폴리오가 성공적으로 저장되었습니다!");
+      setSavedSections((prev) => ({ ...prev, portfolios: true }));
     } catch (error) {
       console.error("포트폴리오 저장 중 오류 발생:", error);
       alert("저장 중 오류가 발생했습니다. 다시 시도해주세요.");
@@ -886,45 +908,60 @@ export default function TalentRegisterPage() {
         <aside className="w-64 bg-white rounded-2xl border border-[#E5E5E5] drop-shadow-md p-6 flex flex-col gap-2 h-fit">
           <div className="flex items-center justify-between mb-4">
             <span className="font-semibold text-sm">이력서 작성</span>
-            <span className="text-orange-500 text-xs font-bold">
+            {/* <span className="text-orange-500 text-xs font-bold">
               {basicInfoProgress}%
-            </span>
+            </span> */}
           </div>
           <ul className="text-[#929292] text-sm space-y-2">
-            {sidebarItems.map((item, idx) => (
-              <li
-                key={item}
-                onClick={() => setActiveIndex(idx)}
-                className={`cursor-pointer px-5 py-3 rounded-xl border transition-all select-none
-                  ${
-                    activeIndex === idx
-                      ? "bg-[#FFF7ED] border-transparent text-[#525151] font-semibold"
-                      : "border-transparent hover:bg-orange-50 hover:border-orange-100"
-                  }
-                `}
-              >
-                {item}
-              </li>
-            ))}
+            {sidebarItems.map((item, idx) => {
+              const isSaved =
+                (idx === 0 && savedSections.basicInfo) ||
+                (idx === 1 && savedSections.projects) ||
+                (idx === 2 && savedSections.portfolios) ||
+                (idx === 3 && savedSections.awards) ||
+                (idx === 4 && savedSections.education);
+
+              return (
+                <li
+                  key={item}
+                  onClick={() => setActiveIndex(idx)}
+                  className={`cursor-pointer px-5 py-3 rounded-xl border transition-all select-none flex items-center justify-between
+                    ${
+                      activeIndex === idx
+                        ? "bg-[#FFF7ED] border-transparent text-[#525151] font-semibold"
+                        : "border-transparent hover:bg-orange-50 hover:border-orange-100"
+                    }
+                  `}
+                >
+                  <span>{item}</span>
+                  <div
+                    className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${
+                      isSaved
+                        ? "bg-[#FF6E15] border-[#FF6E15]"
+                        : "bg-white border-[#E5E5E5]"
+                    }`}
+                  >
+                    <svg
+                      className={`w-3 h-3 ${
+                        isSaved ? "text-white" : "text-[#E5E5E5]"
+                      }`}
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </aside>
         {/* 오른쪽 폼 */}
         <section className="flex-1 bg-white rounded-2xl border border-[#E5E5E5] drop-shadow-md p-8">
-          {/* 테스트용 데이터 로드 버튼 */}
-          {!isDataLoaded && (
-            <div className="mb-4 p-4 bg-orange-50 rounded-lg">
-              <p className="text-sm text-gray-600 mb-2">
-                테스트용 데이터 로드:
-              </p>
-              <button
-                onClick={() => loadResumeData(1)}
-                className="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600 transition"
-              >
-                resume_id=1로 데이터 로드
-              </button>
-            </div>
-          )}
-
           {/* 포트폴리오(필수) 영역일 때만 아래 폼 노출 */}
           {activeIndex === 2 ? (
             <PortfolioSection
@@ -944,170 +981,292 @@ export default function TalentRegisterPage() {
               onSubmit={handleSubmitProjects}
             />
           ) : activeIndex === 3 ? (
-            <div className="flex flex-col gap-8">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <h2 className="font-semibold text-xl">수상 및 자격 내역</h2>
+            <div className="space-y-8">
+              {/* 헤더 섹션 */}
+              <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-1 h-6 bg-gray-400 rounded-full"></div>
+                    <h2 className="text-xl font-semibold text-gray-800">
+                      수상 및 자격 내역
+                    </h2>
+                  </div>
                   <button
                     type="button"
                     onClick={addAward}
-                    className="ml-2 text-2xl text-orange-500 hover:bg-orange-50 rounded-full w-8 h-8 flex items-center justify-center border border-[#E5E5E5]"
+                    className="w-10 h-10 text-[#FF6E15] hover:text-[#E55A0A] transition-colors flex items-center justify-center"
+                    aria-label="수상 내역 추가"
                   >
-                    +
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                      />
+                    </svg>
                   </button>
                 </div>
-                <button
-                  onClick={handleSubmitAwards}
-                  className="px-6 py-2 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition"
-                >
-                  저장
-                </button>
               </div>
+
+              {/* 수상 카드들 */}
               {awards.map((award, idx) => (
                 <div
                   key={idx}
-                  className="relative bg-[#FAFAF9] rounded-2xl border border-[#E5E5E5] p-6 mb-8 drop-shadow-sm"
+                  className="relative bg-white rounded-2xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow"
                 >
                   {/* 삭제 버튼 */}
                   {awards.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeAward(idx)}
-                      className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full border border-[#E5E5E5] bg-white hover:bg-red-50 text-gray-400 hover:text-red-500 transition"
+                      className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 bg-white hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
                       aria-label="수상/자격 삭제"
                     >
-                      ✕
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
                     </button>
                   )}
-                  <div className="flex gap-8 mb-4">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-base mb-1">
+
+                  {/* 수상 번호 */}
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-medium text-sm">
+                      {idx + 1}
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-800">
+                      수상 내역 {idx + 1}
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
                         수상 및 자격증명
-                      </h3>
+                      </label>
                       <input
                         type="text"
                         value={award.name}
                         onChange={(e) =>
                           handleAwardChange(idx, "name", e.target.value)
                         }
-                        className="w-full rounded-xl border border-[#E5E5E5] bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
+                        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6E15] focus:border-[#FF6E15] transition-colors"
                         placeholder="수상 및 자격증명을 입력해주세요"
                       />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-base mb-1">취득일</h3>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        취득일
+                      </label>
                       <input
                         type="text"
                         value={award.date}
                         onChange={(e) =>
                           handleAwardChange(idx, "date", e.target.value)
                         }
-                        className="w-full rounded-xl border border-[#E5E5E5] bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
+                        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6E15] focus:border-[#FF6E15] transition-colors"
                         placeholder="2025.03"
                       />
                     </div>
                   </div>
-                  <div className="mb-2">
-                    <h3 className="font-semibold text-base mb-1">기관명</h3>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      기관명
+                    </label>
                     <input
                       type="text"
                       value={award.org}
                       onChange={(e) =>
                         handleAwardChange(idx, "org", e.target.value)
                       }
-                      className="w-full rounded-xl border border-[#E5E5E5] bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6E15] focus:border-[#FF6E15] transition-colors"
                       placeholder="기관명을 입력해주세요"
                     />
                   </div>
                 </div>
               ))}
+
+              {/* 저장 버튼 */}
+              <div className="flex justify-end">
+                <button
+                  onClick={handleSubmitAwards}
+                  className="px-6 py-3 bg-[#FFF7ED] text-[#FF6E15] rounded-lg font-medium hover:bg-[#FF6E15] hover:text-white transition-colors flex items-center gap-2"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                  수상 내역 저장
+                </button>
+              </div>
             </div>
           ) : activeIndex === 4 ? (
-            <div className="flex flex-col gap-8">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <h2 className="font-semibold text-xl">교육</h2>
+            <div className="space-y-8">
+              {/* 헤더 섹션 */}
+              <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-1 h-6 bg-gray-400 rounded-full"></div>
+                    <h2 className="text-xl font-semibold text-gray-800">
+                      교육
+                    </h2>
+                  </div>
                   <button
                     type="button"
                     onClick={addEducation}
-                    className="ml-2 text-2xl text-orange-500 hover:bg-orange-50 rounded-full w-8 h-8 flex items-center justify-center border border-[#E5E5E5]"
+                    className="w-10 h-10 text-[#FF6E15] hover:text-[#E55A0A] transition-colors flex items-center justify-center"
+                    aria-label="교육 추가"
                   >
-                    +
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                      />
+                    </svg>
                   </button>
                 </div>
-                <button
-                  onClick={handleSubmitEducations}
-                  className="px-6 py-2 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition"
-                >
-                  저장
-                </button>
               </div>
+
+              {/* 교육 카드들 */}
               {educations.map((edu, idx) => (
                 <div
                   key={idx}
-                  className="relative bg-[#FAFAF9] rounded-2xl border border-[#E5E5E5] p-6 mb-8 drop-shadow-sm"
+                  className="relative bg-white rounded-2xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow"
                 >
                   {/* 삭제 버튼 */}
                   {educations.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeEducation(idx)}
-                      className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full border border-[#E5E5E5] bg-white hover:bg-red-50 text-gray-400 hover:text-red-500 transition"
+                      className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 bg-white hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
                       aria-label="교육 삭제"
                     >
-                      ✕
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
                     </button>
                   )}
-                  <div className="mb-4 font-semibold text-base">
-                    교육{idx + 1}
+
+                  {/* 교육 번호 */}
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-medium text-sm">
+                      {idx + 1}
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-800">
+                      교육 {idx + 1}
+                    </h3>
                   </div>
-                  <div className="flex gap-8 mb-4">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-base mb-1">
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
                         교육 기관
-                      </h3>
+                      </label>
                       <input
                         type="text"
                         value={edu.org}
                         onChange={(e) =>
                           handleEducationChange(idx, "org", e.target.value)
                         }
-                        className="w-full rounded-xl border border-[#E5E5E5] bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
+                        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6E15] focus:border-[#FF6E15] transition-colors"
                         placeholder="멋쟁이사자처럼"
                       />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-base mb-1">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
                         교육 기간
-                      </h3>
+                      </label>
                       <input
                         type="text"
                         value={edu.period}
                         onChange={(e) =>
                           handleEducationChange(idx, "period", e.target.value)
                         }
-                        className="w-full rounded-xl border border-[#E5E5E5] bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
-                        placeholder="2025.00.~2025.00"
+                        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6E15] focus:border-[#FF6E15] transition-colors"
+                        placeholder="2025.01~2025.03"
                       />
                     </div>
                   </div>
-                  <div className="mb-2">
-                    <h3 className="font-semibold text-base mb-1">교육명</h3>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      교육명
+                    </label>
                     <input
                       type="text"
                       value={edu.name}
                       onChange={(e) =>
                         handleEducationChange(idx, "name", e.target.value)
                       }
-                      className="w-full rounded-xl border border-[#E5E5E5] bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6E15] focus:border-[#FF6E15] transition-colors"
                       placeholder="프론트엔드 부트캠프 00기"
                     />
                   </div>
-                  {idx < educations.length - 1 && (
-                    <hr className="my-8 border-[#E5E5E5]" />
-                  )}
                 </div>
               ))}
+
+              {/* 저장 버튼 */}
+              <div className="flex justify-end">
+                <button
+                  onClick={handleSubmitEducations}
+                  className="px-6 py-3 bg-[#FFF7ED] text-[#FF6E15] rounded-lg font-medium hover:bg-[#FF6E15] hover:text-white transition-colors flex items-center gap-2"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                  교육 저장
+                </button>
+              </div>
             </div>
           ) : // 기본 정보 영역일 때만 아래 폼 노출
           activeIndex === 0 ? (

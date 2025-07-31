@@ -263,6 +263,7 @@ export default function TalentSearchPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("전체");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const loaderRef = useRef<HTMLDivElement>(null);
 
   // URL 파라미터에서 태그 가져오기
@@ -297,11 +298,30 @@ export default function TalentSearchPage() {
     user_id: 1,
   });
 
-  // 카테고리 필터링된 프로젝트
-  const filteredProjects =
-    selectedCategory === "전체"
-      ? DUMMY_PROJECTS
-      : DUMMY_PROJECTS.filter((project) => project.role === selectedCategory);
+  // 검색 필터링 함수
+  const filterBySearch = (project: any) => {
+    if (!searchQuery.trim()) return true;
+
+    const query = searchQuery.toLowerCase();
+    const searchableText = [
+      project.name,
+      project.role,
+      project.intro,
+      project.projectName,
+      project.projectDesc,
+      ...project.points,
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    return searchableText.includes(query);
+  };
+
+  // 카테고리 및 검색 필터링된 프로젝트
+  const filteredProjects = DUMMY_PROJECTS.filter(filterBySearch).filter(
+    (project) =>
+      selectedCategory === "전체" || project.role === selectedCategory
+  );
 
   const handleInputChange = (field: keyof ConnectFormData, value: string) => {
     setFormData((prev) => ({
@@ -321,6 +341,11 @@ export default function TalentSearchPage() {
   const handleCategoryClick = (category: string) => {
     setSelectedCategory(category);
     setVisibleCount(4); // 카테고리 변경 시 표시 개수 초기화
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setVisibleCount(4); // 검색어 변경 시 표시 개수 초기화
   };
 
   const handleSubmit = async () => {
@@ -722,6 +747,8 @@ export default function TalentSearchPage() {
                 <input
                   type="text"
                   placeholder="이름, 기술, 프로젝트 검색"
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-200 rounded-full text-sm focus:outline-none bg-white shadow-sm pr-12"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
@@ -730,6 +757,18 @@ export default function TalentSearchPage() {
               </div>
             </div>
           </div>
+
+          {/* 검색 결과 없음 메시지 */}
+          {filteredProjects.length === 0 && searchQuery.trim() !== "" && (
+            <div className="text-center py-12">
+              <p className="text-gray-500 text-lg">
+                "{searchQuery}"에 대한 검색 결과가 없습니다.
+              </p>
+              <p className="text-gray-400 text-sm mt-2">
+                다른 키워드로 검색해보세요.
+              </p>
+            </div>
+          )}
 
           {/* 인재 카드 리스트 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-10 mb-26">

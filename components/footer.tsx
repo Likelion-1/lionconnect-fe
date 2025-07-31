@@ -15,7 +15,7 @@ export default function Footer() {
             라이언 커넥트
           </span>
         </div>
-        <nav className="flex space-x-16 mt-2">
+        {/* <nav className="flex space-x-16 mt-2">
           <Link
             href="#"
             className="text-gray-500 text-lg hover:text-orange-500 transition"
@@ -34,7 +34,7 @@ export default function Footer() {
           >
             문의
           </Link>
-        </nav>
+        </nav> */}
       </div>
     </footer>
   );

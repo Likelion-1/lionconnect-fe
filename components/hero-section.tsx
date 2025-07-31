@@ -23,11 +23,31 @@ export default function HeroSection() {
     "데이터 분석가",
   ];
   const navItems = [
-    { name: "프론트엔드 개발자", href: "/", icon: Code },
-    { name: "백엔드 개발자", href: "/", icon: Database },
-    { name: "UI/UX 기획자", href: "/", icon: Palette },
-    { name: "클라우드 엔지니어", href: "/", icon: Cloud },
-    { name: "데이터 분석가", href: "/", icon: BarChart3 },
+    {
+      name: "프론트엔드 개발자",
+      href: "/talent-search?tag=프론트엔드 개발자",
+      icon: Code,
+    },
+    {
+      name: "백엔드 개발자",
+      href: "/talent-search?tag=백엔드 개발자",
+      icon: Database,
+    },
+    {
+      name: "UI/UX 기획자",
+      href: "/talent-search?tag=UI/UX 기획자",
+      icon: Palette,
+    },
+    {
+      name: "클라우드 엔지니어",
+      href: "/talent-search?tag=클라우드 엔지니어",
+      icon: Cloud,
+    },
+    {
+      name: "데이터 분석가",
+      href: "/talent-search?tag=데이터 분석가",
+      icon: BarChart3,
+    },
   ];
   const [currentJobIndex, setCurrentJobIndex] = useState(0);
   const [isChanging, setIsChanging] = useState(false);

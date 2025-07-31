@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Search, ChevronRight } from "lucide-react";
 import { ConnectRequestService } from "@/lib/services/connectRequestService";
+import { useSearchParams } from "next/navigation";
 
 interface ConnectFormData {
   career_level: string;
@@ -256,12 +257,31 @@ const DUMMY_PROJECTS = [
 ];
 
 export default function TalentSearchPage() {
+  const searchParams = useSearchParams();
   const [visibleCount, setVisibleCount] = useState(4);
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("전체");
   const loaderRef = useRef<HTMLDivElement>(null);
+
+  // URL 파라미터에서 태그 가져오기
+  useEffect(() => {
+    const tag = searchParams.get("tag");
+    if (tag) {
+      // 태그 매핑
+      const tagMapping: { [key: string]: string } = {
+        "프론트엔드 개발자": "프론트엔드",
+        "백엔드 개발자": "백엔드",
+        "UI/UX 기획자": "UI/UX",
+        "클라우드 엔지니어": "클라우드 엔지니어링",
+        "데이터 분석가": "데이터분석",
+      };
+
+      const mappedCategory = tagMapping[tag] || tag;
+      setSelectedCategory(mappedCategory);
+    }
+  }, [searchParams]);
 
   const [formData, setFormData] = useState<ConnectFormData>({
     career_level: "",

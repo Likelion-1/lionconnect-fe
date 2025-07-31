@@ -44,9 +44,11 @@ export default function Header() {
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="w-[119px] h-[37px] border border-[#F3F3F3] rounded-[15px] text-sm text-gray-600 hover:text-gray-800 transition-colors">
-              로그인/회원가입
-            </button>
+            <Link href="/auth">
+              <button className="w-[119px] h-[37px] border border-[#F3F3F3] rounded-[15px] text-sm text-gray-600 hover:text-gray-800 transition-colors">
+                로그인/회원가입
+              </button>
+            </Link>
             {/* <button className="px-4 py-2 border border-orange-500 text-orange-500 text-sm font-medium hover:bg-orange-50 rounded-full transition-all">
               로그인
             </button> */}

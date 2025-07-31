@@ -1314,7 +1314,7 @@ export default function TalentRegisterPage() {
       </main>
       {/* 하단 버튼 영역 */}
       <footer className="w-full flex items-center justify-between px-16 py-8 bg-white border-t border-[#E5E5E5] drop-shadow-sm mt-8">
-        <button className="flex items-center gap-2 text-orange-500 font-semibold text-base">
+        {/* <button className="flex items-center gap-2 text-orange-500 font-semibold text-base">
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
             <path
               d="M12 3v14m0 0-4-4m4 4 4-4"
@@ -1345,7 +1345,7 @@ export default function TalentRegisterPage() {
           >
             전체 저장
           </button>
-        </div>
+        </div> */}
       </footer>
     </div>
   );

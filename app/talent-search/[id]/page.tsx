@@ -1,9 +1,10 @@
 "use client";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ConnectRequestService } from "@/lib/services/connectRequestService";
 import { ResumeService } from "@/lib/services/resumeService";
+import { AuthService } from "@/lib/services/authService";
 
 interface ConnectFormData {
   career_level: string;
@@ -93,10 +94,13 @@ interface ResumeDetailData {
 
 export default function TalentDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const userId = params.id as string;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [authChecking, setAuthChecking] = useState(true);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resumeData, setResumeData] = useState<ResumeDetailData | null>(null);
 
@@ -114,10 +118,24 @@ export default function TalentDetailPage() {
     user_id: parseInt(userId),
   });
 
-  // 데이터 로드
+  // 인증 상태 확인
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const isAuthenticated = AuthService.isAuthenticated();
+      if (!isAuthenticated) {
+        setIsRedirecting(true);
+        const currentUrl = encodeURIComponent(window.location.pathname);
+        router.replace(`/auth/login?redirect=${currentUrl}`);
+      } else {
+        setAuthChecking(false);
+      }
+    }
+  }, [router]);
+
+  // 데이터 로드 (인증 확인 후)
   useEffect(() => {
     const loadResumeData = async () => {
-      if (!userId) return;
+      if (!userId || authChecking) return;
 
       try {
         setLoading(true);
@@ -141,7 +159,7 @@ export default function TalentDetailPage() {
     };
 
     loadResumeData();
-  }, [userId]);
+  }, [userId, authChecking]);
 
   const handleInputChange = (field: keyof ConnectFormData, value: string) => {
     setFormData((prev) => ({
@@ -197,6 +215,22 @@ export default function TalentDetailPage() {
       alert("커넥트 요청에 실패했습니다. 다시 시도해주세요.");
     }
   };
+
+  // 리다이렉트 중이거나 인증 확인 중
+  if (isRedirecting || authChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">
+            {isRedirecting
+              ? "로그인 페이지로 이동하는 중..."
+              : "인증 상태를 확인하는 중..."}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // 로딩 상태
   if (loading) {

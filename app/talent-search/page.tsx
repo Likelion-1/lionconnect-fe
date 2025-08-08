@@ -33,7 +33,6 @@ export default function TalentSearchPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("전체");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isInitialized, setIsInitialized] = useState(false);
-  const [lastCheckTime, setLastCheckTime] = useState<number>(Date.now());
   const loaderRef = useRef<HTMLDivElement>(null);
 
   // URL 파라미터에서 태그 가져오기
@@ -68,93 +67,58 @@ export default function TalentSearchPage() {
     user_id: 1,
   });
 
-  const loadTalents = useCallback(async (reset: boolean = false) => {
-    if (loading) return;
+  const loadTalents = useCallback(
+    async (reset: boolean = false) => {
+      console.log(
+        `Loading talents: skip=${reset ? 0 : skip}, limit=10, reset=${reset}`
+      );
+      setLoading(true);
 
-    console.log(`Loading talents: skip=${reset ? 0 : skip}, limit=10, reset=${reset}`);
-    setLoading(true);
-    try {
-      const currentSkip = reset ? 0 : skip;
-      const data = await TalentService.getTalents(currentSkip, 10);
-      console.log(`Received ${data.length} talents:`, data);
+      try {
+        const currentSkip = reset ? 0 : skip;
+        const data = await TalentService.getTalents(currentSkip, 10);
+        console.log(`Received ${data.length} talents:`, data);
 
-      if (data.length === 0) {
-        setHasMore(false);
-      } else {
-        setTalents((prev) => {
-          if (reset) {
-            console.log(`Resetting talents, new count: ${data.length}`);
-            return data;
-          } else {
-            // 중복 제거 로직 추가
-            const existingIds = new Set(prev.map(t => t.user_id));
-            const uniqueNewData = data.filter(t => !existingIds.has(t.user_id));
-            
-            if (uniqueNewData.length === 0) {
-              console.log("No new unique talents found");
-              setHasMore(false);
-              return prev;
+        if (data.length === 0) {
+          setHasMore(false);
+        } else {
+          setTalents((prev) => {
+            if (reset) {
+              console.log(`Resetting talents, new count: ${data.length}`);
+              return data;
+            } else {
+              // 중복 제거 로직 추가
+              const existingIds = new Set(prev.map((t) => t.user_id));
+              const uniqueNewData = data.filter(
+                (t) => !existingIds.has(t.user_id)
+              );
+
+              if (uniqueNewData.length === 0) {
+                console.log("No new unique talents found");
+                setHasMore(false);
+                return prev;
+              }
+
+              const newTalents = [...prev, ...uniqueNewData];
+              console.log(
+                `Total talents after update: ${newTalents.length} (added ${uniqueNewData.length} new)`
+              );
+              return newTalents;
             }
-            
-            const newTalents = [...prev, ...uniqueNewData];
-            console.log(`Total talents after update: ${newTalents.length} (added ${uniqueNewData.length} new)`);
-            return newTalents;
-          }
-        });
-        setSkip((prev) => reset ? 10 : prev + 10);
-      }
-    } catch (error) {
-      console.error("Failed to load talents:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [loading, skip]);
-
-  // 새로운 데이터 확인 함수
-  const checkForNewData = useCallback(async () => {
-    try {
-      const data = await TalentService.getTalents(0, 1);
-      if (data.length > 0) {
-        const latestTalent = data[0];
-        const latestTime = new Date(latestTalent.created_at).getTime();
-        
-        if (latestTime > lastCheckTime) {
-          console.log("New data detected, refreshing...");
-          setLastCheckTime(latestTime);
-          setTalents([]);
-          setSkip(0);
-          setHasMore(true);
-          loadTalents(true);
+          });
+          setSkip((prev) => (reset ? 10 : prev + 10));
         }
+      } catch (error) {
+        console.error("Failed to load talents:", error);
+      } finally {
+        // 로딩 상태를 약간 지연시켜 깜빡임 방지
+        setTimeout(() => {
+          setLoading(false);
+        }, 100);
       }
-    } catch (error) {
-      console.error("Failed to check for new data:", error);
-    }
-  }, [lastCheckTime, loadTalents]);
-
-  // 주기적으로 새로운 데이터 확인 (5분마다)
-  useEffect(() => {
-    if (!isInitialized) return;
-
-    const interval = setInterval(() => {
-      checkForNewData();
-    }, 5 * 60 * 1000); // 5분
-
-    return () => clearInterval(interval);
-  }, [isInitialized, checkForNewData]);
-
-  // 페이지 포커스 시 새로운 데이터 확인
-  useEffect(() => {
-    const handleFocus = () => {
-      if (isInitialized) {
-        console.log("Page focused, checking for new data");
-        checkForNewData();
-      }
-    };
-
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
-  }, [isInitialized, checkForNewData]);
+    },
+    [] // 의존성 제거
+  );
 
   // 초기 데이터 로드 (한 번만 실행)
   useEffect(() => {
@@ -163,7 +127,7 @@ export default function TalentSearchPage() {
       setIsInitialized(true);
       loadTalents(true);
     }
-  }, [isInitialized, loadTalents]);
+  }, [isInitialized]); // loadTalents 의존성 제거
 
   // 필터 변경 시 데이터 리셋 (디바운스 적용)
   useEffect(() => {
@@ -175,10 +139,32 @@ export default function TalentSearchPage() {
       setSkip(0);
       setHasMore(true);
       loadTalents(true);
-    }, 300); // 300ms 디바운스
+    }, 500); // 500ms 디바운스로 증가
 
     return () => clearTimeout(timeoutId);
-  }, [selectedCategory, searchQuery, isInitialized, loadTalents]);
+  }, [selectedCategory, searchQuery]); // isInitialized 의존성 제거
+
+  // 뒤로가기 시 데이터 복원 (필요한 경우에만)
+  useEffect(() => {
+    if (isInitialized && talents.length === 0) {
+      console.log("Restoring data after navigation");
+      loadTalents(true);
+    }
+  }, [isInitialized, talents.length]); // talents.length만 의존성으로
+
+  // 브라우저 뒤로가기/앞으로가기 감지
+  useEffect(() => {
+    const handlePopState = () => {
+      // 뒤로가기/앞으로가기 시 데이터가 있으면 새로고침하지 않음
+      if (talents.length > 0) {
+        console.log("Navigation detected, keeping existing data");
+        return;
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [talents.length]);
 
   // 검색 필터링 함수
   const filterBySearch = (talent: Talent) => {
@@ -295,7 +281,7 @@ export default function TalentSearchPage() {
 
     observer.observe(loaderRef.current);
     return () => observer.disconnect();
-  }, [hasMore, loading, loadTalents]);
+  }, [hasMore, loading]); // loadTalents 의존성 제거
 
   return (
     <div className="min-h-screen flex flex-col text-gray-900">
@@ -724,7 +710,10 @@ export default function TalentSearchPage() {
             className="h-12 flex items-center justify-center"
           >
             {loading && (
-              <span className="text-gray-400 mt-10">불러오는 중...</span>
+              <div className="flex items-center gap-2 text-gray-400 mt-10">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500"></div>
+                <span>불러오는 중...</span>
+              </div>
             )}
             {!hasMore && talents.length > 0 && (
               <span className="text-gray-400 mt-10">

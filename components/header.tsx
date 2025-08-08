@@ -43,6 +43,7 @@ export default function Header() {
     { name: "인재 탐색", href: "/talent-search" },
     { name: "인재 등록", href: "/talent-register" },
     { name: "인재 요청", href: "/talent-request" },
+    { name: "관리자", href: "/admin-bulk-upload" },
   ];
 
   return (

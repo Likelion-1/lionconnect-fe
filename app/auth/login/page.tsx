@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AuthService, LoginRequest } from "@/lib/services/authService";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<LoginRequest>({
@@ -40,7 +41,14 @@ export default function LoginPage() {
 
       if (response.success) {
         console.log("로그인 성공:", response.data);
-        router.push("/"); // 홈페이지로 리다이렉트
+        
+        // 리다이렉트 URL이 있으면 해당 페이지로, 없으면 홈페이지로
+        const redirectUrl = searchParams.get("redirect");
+        if (redirectUrl) {
+          router.push(decodeURIComponent(redirectUrl));
+        } else {
+          router.push("/");
+        }
       } else {
         setError(response.message);
       }

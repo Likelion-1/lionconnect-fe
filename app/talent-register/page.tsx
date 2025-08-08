@@ -6,11 +6,7 @@ import {
   BasicInfoData,
   ResumeResponseData,
 } from "@/lib/services/resumeService";
-import {
-  PortfolioService,
-  PortfolioData,
-  PortfolioResponseData,
-} from "@/lib/services/portfolioService";
+import { PortfolioService, PortfolioData } from "@/lib/services/projectService";
 import { AwardService, AwardData } from "@/lib/services/awardService";
 import {
   EducationService,
@@ -25,8 +21,8 @@ import ProjectSection from "@/components/talent-register/ProjectSection";
 
 const sidebarItems = [
   "기본 정보(필수)",
-  "프로젝트(필수)",
-  "포트폴리오(필수)",
+  "프로젝트(필수)", // 프로젝트를 먼저
+  "포트폴리오(필수)", // 포트폴리오는 프로젝트 이후
   "수상 및 활동",
   "교육",
 ];
@@ -54,32 +50,33 @@ const emptyPortfolio: Portfolio = {
 };
 
 interface Project {
-  name: string;
-  period: string;
-  summary: string;
-  description: string;
-  role: string;
-  stack: string;
+  title: string; // name → title로 변경
+  project_period?: string; // 프로젝트 기간 (통합)
+  description?: string; // 선택 필드로 변경
+  github_url?: string; // 추가
+  demo_url?: string; // 추가
+  tech_stack?: string; // stack → tech_stack으로 변경, 선택 필드로 변경
+  role?: string; // 담당 역할 필드 추가
 }
 
 const emptyProject: Project = {
-  name: "",
-  period: "",
-  summary: "",
+  title: "",
+  project_period: "",
   description: "",
-  role: "",
-  stack: "",
+  github_url: "",
+  demo_url: "",
+  tech_stack: "",
 };
 
 interface Award {
-  name: string;
-  date: string;
-  org: string;
+  name: string; // title → name으로 변경
+  date?: string; // 선택 필드로 변경
+  organization: string; // description → organization으로 변경
 }
 const emptyAward: Award = {
   name: "",
   date: "",
-  org: "",
+  organization: "",
 };
 
 interface Education {
@@ -151,24 +148,50 @@ export default function TalentRegisterPage() {
   ]);
   const [basicInfo, setBasicInfo] = useState<BasicInfo>({ ...emptyBasicInfo });
 
-  // user_id 저장 함수
-  const saveUserId = (id: number) => {
+  // user_id 저장 함수 (기본 정보 저장 시 resume_id를 저장하는 용도)
+  const saveUserId = (id: number | undefined) => {
+    if (id === undefined || id === null) {
+      console.warn("saveUserId: id가 undefined 또는 null입니다.");
+      return;
+    }
     setUserId(id);
-    localStorage.setItem("userId", id.toString());
-    console.log("저장된 user_id:", id);
+    // 로그인 시 저장된 사용자 ID는 덮어쓰지 않음
+    // localStorage.setItem("userId", id.toString());
+    console.log("저장된 user_id (resume_id 용도):", id);
   };
 
-  // user_id 불러오기 함수
+  // user_id 불러오기 함수 (로그인 시 저장된 사용자 ID 우선 사용)
   const loadUserId = () => {
     const saved = localStorage.getItem("userId");
     if (saved) {
       const id = parseInt(saved);
       setUserId(id);
-      console.log("불러온 user_id:", id);
+      console.log("불러온 user_id (로그인 시 저장됨):", id);
 
       return id;
     }
     return null;
+  };
+
+  // resume_id 불러오기 함수
+  const loadResumeId = () => {
+    const saved = localStorage.getItem("resume_id");
+    if (saved) {
+      const id = parseInt(saved);
+      setResumeId(id);
+      console.log("불러온 resume_id (localStorage에서):", id);
+      return id;
+    }
+    return null;
+  };
+
+  // localStorage 초기화 함수 (로그아웃 시 사용)
+  const clearUserId = () => {
+    // AuthService의 logout 메서드 사용
+    const { AuthService } = require("@/lib/services/authService");
+    AuthService.logout();
+    setUserId(null);
+    console.log("localStorage에서 사용자 정보 제거됨 (로그아웃)");
   };
 
   // 데이터 로드 함수
@@ -212,8 +235,16 @@ export default function TalentRegisterPage() {
           intro: resume.intro || "",
         });
 
-        saveUserId(resume.user_id);
-        setResumeId(resume.id);
+        if (resume.user_id !== undefined && resume.user_id !== null) {
+          saveUserId(resume.user_id);
+        } else {
+          console.warn("로드된 resume에서 user_id를 찾을 수 없습니다:", resume);
+        }
+        if (resume.id !== undefined && resume.id !== null) {
+          setResumeId(resume.id);
+        } else {
+          console.warn("로드된 resume에서 id를 찾을 수 없습니다:", resume);
+        }
 
         // 포트폴리오 데이터 설정
         if (loadedPortfolios && loadedPortfolios.length > 0) {
@@ -248,13 +279,13 @@ export default function TalentRegisterPage() {
         // 프로젝트 데이터 설정
         if (loadedProjects && loadedProjects.length > 0) {
           const formattedProjects = loadedProjects.map((project: any) => ({
-            name: project.project_name || "",
-            period: project.project_period || "",
-            summary: project.project_intro || "",
+            title: project.project_name || "",
+            start_date: project.start_date || "",
+            end_date: project.end_date || "",
             description: project.description || "",
-            role: project.role || "",
-            stack: project.tech_stack || "",
-            github: project.github_url || "",
+            github_url: project.github_url || "",
+            demo_url: project.demo_url || "",
+            tech_stack: project.tech_stack || "",
           }));
           setProjects(formattedProjects);
           setProjectIds(loadedProjects.map((p: any) => p.id));
@@ -263,9 +294,9 @@ export default function TalentRegisterPage() {
         // 수상 및 활동 데이터 설정
         if (loadedAwards && loadedAwards.length > 0) {
           const formattedAwards = loadedAwards.map((award: any) => ({
-            name: award.name || "",
+            name: award.name || award.title || "",
             date: award.date ? award.date.replace(/-/g, ".") : "",
-            org: award.organization || "",
+            organization: award.organization || award.description || "",
           }));
           setAwards(formattedAwards);
           setAwardIds(loadedAwards.map((a: any) => a.id));
@@ -300,6 +331,14 @@ export default function TalentRegisterPage() {
 
   // 컴포넌트 마운트 시 데이터 로드
   useEffect(() => {
+    // 로그인 시 저장된 사용자 ID 불러오기
+    const savedUserId = loadUserId();
+    console.log("컴포넌트 마운트 시 불러온 사용자 ID:", savedUserId);
+
+    // localStorage에서 resume_id 불러오기
+    const savedResumeId = loadResumeId();
+    console.log("컴포넌트 마운트 시 불러온 resume_id:", savedResumeId);
+
     // URL에서 resume_id 파라미터 확인
     const urlParams = new URLSearchParams(window.location.search);
     const resumeIdFromUrl = urlParams.get("resume_id");
@@ -551,16 +590,38 @@ export default function TalentRegisterPage() {
       }
 
       if (response.success) {
-        // 응답 데이터에서 user_id와 resume_id 저장
+        // 응답 데이터에서 resume_id 저장 (user_id는 로그인 시 이미 저장됨)
         if (response.data) {
           const responseData = response.data as ResumeResponseData;
-          saveUserId(responseData.user_id);
-          setResumeId(responseData.id);
-          console.log("저장된 user_id:", responseData.user_id);
-          console.log("저장된 resume_id:", responseData.id);
+          console.log("기본 정보 저장 응답 전체:", responseData);
+
+          // resume_id 설정 (기본 정보 저장 시 받는 id는 resume_id)
+          if (responseData.id !== undefined && responseData.id !== null) {
+            setResumeId(responseData.id);
+            // resume_id를 localStorage에 저장
+            localStorage.setItem("resume_id", responseData.id.toString());
+            console.log("저장된 resume_id:", responseData.id);
+          }
+
+          // user_id는 로그인 시 이미 저장되어 있으므로 확인만
+          const savedUserId = localStorage.getItem("userId");
+          console.log("로그인 시 저장된 user_id:", savedUserId);
+        } else {
+          console.error("응답 데이터가 없습니다:", response);
+          alert("서버 응답에 데이터가 없습니다. 다시 시도해주세요.");
+          return;
         }
         alert("기본 정보가 성공적으로 저장되었습니다!");
         setSavedSections((prev) => ({ ...prev, basicInfo: true }));
+
+        // 실제 사용자 ID 확인을 위한 추가 로직
+        const loginUserId = localStorage.getItem("userId");
+        console.log(
+          "기본 정보 저장 완료. 로그인 시 저장된 user_id:",
+          loginUserId
+        );
+        console.log("현재 상태의 user_id:", userId);
+
         // 성공 후 처리 (예: 다음 단계로 이동)
       } else {
         alert(`저장 실패: ${response.message}`);
@@ -580,24 +641,31 @@ export default function TalentRegisterPage() {
     try {
       setIsLoading(true);
 
-      // localStorage에서 user_id 불러오기
+      // localStorage에서 로그인 시 저장된 user_id 불러오기
       const savedUserId = localStorage.getItem("userId");
       const currentUserId = savedUserId ? parseInt(savedUserId) : null;
 
+      console.log("localStorage에서 불러온 userId:", savedUserId);
+      console.log("파싱된 currentUserId:", currentUserId);
+
       if (!currentUserId) {
-        alert("사용자 정보를 찾을 수 없습니다. 기본 정보를 먼저 저장해주세요.");
+        alert("로그인 정보를 찾을 수 없습니다. 먼저 로그인해주세요.");
         return;
       }
 
+      // user_id가 유효한 값인지 확인 (0보다 큰 실제 사용자 ID여야 함)
+      if (!currentUserId || currentUserId <= 0) {
+        console.warn("user_id가 유효하지 않습니다. 다시 로그인해주세요.");
+        alert("사용자 ID가 올바르지 않습니다. 다시 로그인해주세요.");
+        return;
+      }
+
+      console.log("사용할 user_id:", currentUserId);
+      console.log("사용할 portfolio_ids:", portfolioIds);
+
       // 프로젝트 데이터 검증
       const validProjects = projects.filter(
-        (project) =>
-          project.name &&
-          project.period &&
-          project.summary &&
-          project.description &&
-          project.role &&
-          project.stack
+        (project) => project.title && project.description
       );
 
       if (validProjects.length === 0) {
@@ -613,15 +681,18 @@ export default function TalentRegisterPage() {
 
         const projectData: ProjectData = {
           user_id: currentUserId, // localStorage에서 불러온 user_id 사용
-          project_name: project.name,
-          project_period: project.period,
-          project_intro: project.summary,
+          title: project.title,
           description: project.description,
-          role: project.role,
-          tech_stack: project.stack,
+          github_url: project.github_url,
+          demo_url: project.demo_url,
+          tech_stack: project.tech_stack,
+          project_period: project.project_period, // 프로젝트 기간 (통합)
+          role: project.role, // 담당 역할 필드 추가
         };
 
         console.log(`프로젝트 ${i + 1} API 요청 데이터:`, projectData);
+        console.log(`프로젝트 ${i + 1} 원본 데이터:`, project);
+        console.log(`프로젝트 ${i + 1} user_id:`, currentUserId);
 
         let response;
         // 기존 프로젝트 ID가 있으면 업데이트, 없으면 새로 생성
@@ -635,7 +706,7 @@ export default function TalentRegisterPage() {
         }
 
         if (!response.success) {
-          alert(`프로젝트 "${project.name}" 저장 실패: ${response.message}`);
+          alert(`프로젝트 "${project.title}" 저장 실패: ${response.message}`);
           return;
         }
       }
@@ -653,18 +724,18 @@ export default function TalentRegisterPage() {
   // 수상 및 활동 저장 함수
   const handleSubmitAwards = async () => {
     try {
-      // localStorage에서 user_id 불러오기
-      const savedUserId = localStorage.getItem("userId");
-      const currentUserId = savedUserId ? parseInt(savedUserId) : null;
+      // localStorage에서 resume_id 불러오기
+      const savedResumeId = localStorage.getItem("resume_id");
+      const currentResumeId = savedResumeId ? parseInt(savedResumeId) : null;
 
-      if (!currentUserId) {
-        alert("사용자 정보를 찾을 수 없습니다. 기본 정보를 먼저 저장해주세요.");
+      if (!currentResumeId) {
+        alert("이력서 정보를 찾을 수 없습니다. 먼저 기본 정보를 등록해주세요.");
         return;
       }
 
       // 수상 및 활동 데이터 검증
       const validAwards = awards.filter(
-        (award) => award.name && award.date && award.org
+        (award) => award.name && award.organization
       );
 
       if (validAwards.length === 0) {
@@ -679,13 +750,13 @@ export default function TalentRegisterPage() {
         const award = validAwards[i];
 
         // 날짜 형식 변환 (YYYY.MM -> YYYY-MM)
-        const formattedDate = award.date.replace(/\./g, "-");
+        const formattedDate = award.date ? award.date.replace(/\./g, "-") : "";
 
         const awardData: AwardData = {
-          user_id: currentUserId, // localStorage에서 불러온 user_id 사용
+          resume_id: currentResumeId, // localStorage에서 불러온 resume_id 사용
           name: award.name,
           date: formattedDate,
-          organization: award.org,
+          organization: award.organization,
         };
 
         console.log(`수상 및 활동 ${i + 1} API 요청 데이터:`, awardData);
@@ -715,12 +786,12 @@ export default function TalentRegisterPage() {
   // 교육 저장 함수
   const handleSubmitEducations = async () => {
     try {
-      // localStorage에서 user_id 불러오기
-      const savedUserId = localStorage.getItem("userId");
-      const currentUserId = savedUserId ? parseInt(savedUserId) : null;
+      // localStorage에서 resume_id 불러오기
+      const savedResumeId = localStorage.getItem("resume_id");
+      const currentResumeId = savedResumeId ? parseInt(savedResumeId) : null;
 
-      if (!currentUserId) {
-        alert("사용자 정보를 찾을 수 없습니다. 기본 정보를 먼저 저장해주세요.");
+      if (!currentResumeId) {
+        alert("이력서 정보를 찾을 수 없습니다. 먼저 기본 정보를 등록해주세요.");
         return;
       }
 
@@ -738,18 +809,17 @@ export default function TalentRegisterPage() {
       for (let i = 0; i < validEducations.length; i++) {
         const education = validEducations[i];
 
-        // 기간 형식 변환 (YYYY.MM.~YYYY.MM -> YYYY-MM ~ YYYY-MM)
-        const formattedPeriod = education.period
-          .replace(/\./g, "-")
-          .replace(/~/g, " ~ ");
+        // 기간 형식 변환 (YYYY.MM~YYYY.MM -> YYYY.MM~YYYY.MM 형태 유지)
+        const formattedPeriod = education.period;
 
         const educationData: EducationData = {
-          resume_id: resumeId || 1, // 저장된 resume_id 사용
-          user_id: currentUserId, // localStorage에서 불러온 user_id 사용
+          resume_id: currentResumeId, // localStorage에서 불러온 resume_id 사용
           institution: education.org,
           period: formattedPeriod,
           name: education.name,
         };
+
+        console.log(`교육 ${i + 1} API 요청 데이터:`, educationData);
 
         let response;
         // 기존 교육 ID가 있으면 업데이트, 없으면 새로 생성
@@ -779,12 +849,22 @@ export default function TalentRegisterPage() {
   // 포트폴리오 저장 함수
   const handleSubmitPortfolios = async () => {
     try {
-      // localStorage에서 user_id 불러오기
+      // localStorage에서 로그인 시 저장된 user_id 불러오기
       const savedUserId = localStorage.getItem("userId");
       const currentUserId = savedUserId ? parseInt(savedUserId) : null;
 
+      console.log("포트폴리오 저장 시 사용할 user_id:", currentUserId);
+      console.log("localStorage에서 불러온 userId:", savedUserId);
+
       if (!currentUserId) {
-        alert("사용자 정보를 찾을 수 없습니다. 기본 정보를 먼저 저장해주세요.");
+        alert("로그인 정보를 찾을 수 없습니다. 먼저 로그인해주세요.");
+        return;
+      }
+
+      // user_id가 유효한 값인지 확인 (0보다 큰 실제 사용자 ID여야 함)
+      if (currentUserId <= 0) {
+        console.warn("user_id가 유효하지 않습니다:", currentUserId);
+        alert("사용자 ID가 올바르지 않습니다. 다시 로그인해주세요.");
         return;
       }
 
@@ -794,7 +874,8 @@ export default function TalentRegisterPage() {
           portfolio.name &&
           portfolio.summary &&
           portfolio.period &&
-          portfolio.role
+          portfolio.role &&
+          portfolio.isRepresentative !== undefined
       );
 
       if (validPortfolios.length === 0) {
@@ -817,17 +898,19 @@ export default function TalentRegisterPage() {
           project_period: portfolio.period,
           role: portfolio.role,
           project_url: portfolio.url || undefined,
-          image: portfolio.image || undefined,
+          image: portfolio.imageUrl || undefined,
           is_representative: portfolio.isRepresentative,
         };
 
         console.log(`포트폴리오 ${i + 1} API 요청 데이터:`, portfolioData);
+        console.log(`포트폴리오 ${i + 1} 원본 데이터:`, portfolio);
+        console.log(`포트폴리오 ${i + 1} user_id:`, currentUserId);
 
         let response;
         // 기존 포트폴리오 ID가 있으면 업데이트, 없으면 새로 생성
         if (portfolioIds[i]) {
           response = await PortfolioService.updatePortfolio(
-            portfolioIds[i],
+            portfolioIds[i], // 포트폴리오 ID 사용
             portfolioData
           );
         } else {
@@ -842,10 +925,9 @@ export default function TalentRegisterPage() {
         }
 
         // 응답에서 포트폴리오 ID 저장
-        if (response.data) {
-          const responseData = response.data as PortfolioResponseData;
-          savedPortfolioIds.push(responseData.id);
-          console.log(`포트폴리오 "${portfolio.name}" ID:`, responseData.id);
+        if (response.data && response.data.id) {
+          savedPortfolioIds.push(response.data.id);
+          console.log(`포트폴리오 "${portfolio.name}" ID:`, response.data.id);
         }
       }
 
@@ -1057,7 +1139,7 @@ export default function TalentRegisterPage() {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                     <div className="space-y-2">
                       <label className="block text-sm font-medium text-gray-700">
-                        수상 및 자격증명
+                        수상 제목
                       </label>
                       <input
                         type="text"
@@ -1086,16 +1168,16 @@ export default function TalentRegisterPage() {
                   </div>
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">
-                      기관명
+                      수상 기관
                     </label>
                     <input
                       type="text"
-                      value={award.org}
+                      value={award.organization || ""}
                       onChange={(e) =>
-                        handleAwardChange(idx, "org", e.target.value)
+                        handleAwardChange(idx, "organization", e.target.value)
                       }
                       className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6E15] focus:border-[#FF6E15] transition-colors"
-                      placeholder="기관명을 입력해주세요"
+                      placeholder="수상 기관을 입력해주세요"
                     />
                   </div>
                 </div>

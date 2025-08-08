@@ -2,9 +2,42 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 
 export default function Header() {
   const pathname = usePathname();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // 로그인 상태 확인
+  useEffect(() => {
+    const checkLoginStatus = () => {
+      const token = localStorage.getItem("access_token");
+      setIsLoggedIn(!!token);
+    };
+
+    checkLoginStatus();
+
+    // 로컬 스토리지 변경 감지
+    const handleStorageChange = () => {
+      checkLoginStatus();
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("focus", checkLoginStatus);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("focus", checkLoginStatus);
+    };
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    setIsLoggedIn(false);
+    // 로그아웃 후 홈페이지로 리다이렉트
+    window.location.href = "/";
+  };
 
   const navItems = [
     { name: "인재 탐색", href: "/talent-search" },
@@ -44,11 +77,20 @@ export default function Header() {
           </div>
 
           <div className="flex items-center gap-4">
-            <Link href="/auth">
-              <button className="w-[119px] h-[37px] border border-[#F3F3F3] rounded-[15px] text-sm text-gray-600 hover:text-gray-800 transition-colors">
-                로그인/회원가입
+            {isLoggedIn ? (
+              <button
+                onClick={handleLogout}
+                className="w-[119px] h-[37px] border border-[#F3F3F3] rounded-[15px] text-sm text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                로그아웃
               </button>
-            </Link>
+            ) : (
+              <Link href="/auth">
+                <button className="w-[119px] h-[37px] border border-[#F3F3F3] rounded-[15px] text-sm text-gray-600 hover:text-gray-800 transition-colors">
+                  로그인/회원가입
+                </button>
+              </Link>
+            )}
             {/* <button className="px-4 py-2 border border-orange-500 text-orange-500 text-sm font-medium hover:bg-orange-50 rounded-full transition-all">
               로그인
             </button> */}

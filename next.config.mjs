@@ -8,6 +8,14 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "lionconnect-backend.onrender.com",
+        port: "",
+        pathname: "/**",
+      },
+    ],
   },
   async rewrites() {
     return [

@@ -24,8 +24,8 @@ export interface BasicInfoResponse {
 
 // 서버 응답 데이터 인터페이스
 export interface ResumeResponseData {
-  id: number;
-  user_id: number;
+  id: number; // resume ID
+  user_id?: number; // 사용자 ID (별도로 있을 수 있음)
   profile_image?: string;
   name: string;
   email: string;
@@ -37,6 +37,7 @@ export interface ResumeResponseData {
   period: string;
   short_intro: string;
   intro: string;
+  age?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -229,6 +230,33 @@ export class ResumeService {
   ): Promise<ResumeDetailResponse> {
     try {
       const response = await apiClient.get(`/resumes/${resumeId}/detail`);
+
+      return {
+        success: true,
+        message: "이력서 상세 정보를 성공적으로 가져왔습니다.",
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error("이력서 상세 정보 조회 중 오류:", error);
+      return {
+        success: false,
+        message:
+          error.response?.data?.message ||
+          "이력서 상세 정보 조회에 실패했습니다.",
+      };
+    }
+  }
+
+  /**
+   * 사용자 ID로 이력서 상세 정보 조회
+   * @param userId 사용자 ID
+   * @returns API 응답
+   */
+  static async getUserResumeDetail(
+    userId: number
+  ): Promise<ResumeDetailResponse> {
+    try {
+      const response = await apiClient.get(`/resumes/user/${userId}/detail`);
 
       return {
         success: true,

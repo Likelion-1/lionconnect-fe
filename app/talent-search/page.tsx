@@ -2,9 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Search, ChevronRight } from "lucide-react";
 import { ConnectRequestService } from "@/lib/services/connectRequestService";
+import { TalentService, Talent } from "@/lib/services/talentService";
 import { useSearchParams } from "next/navigation";
 
 interface ConnectFormData {
@@ -21,249 +22,18 @@ interface ConnectFormData {
   user_id: number;
 }
 
-const DUMMY_PROJECTS = [
-  // 프론트엔드
-  {
-    id: 1,
-    name: "김프론트",
-    role: "프론트엔드",
-    intro: "React와 TypeScript를 활용한 모던 웹 개발자입니다.",
-    projectImg: "/images/Frame.png",
-    projectName: "토도동",
-    projectDesc: "농구 경기를 볼 수 있는 서비스 입니다.",
-    points: [
-      "Redux Hooks를 활용한 000개선",
-      "클린아키텍처를 적용하여 코드 효율 달성",
-      "Vercel을 활용한 배포",
-    ],
-  },
-  {
-    id: 2,
-    name: "이리액트",
-    role: "프론트엔드",
-    intro: "사용자 경험을 중시하는 프론트엔드 개발자입니다.",
-    projectImg: "/images/Preview.png",
-    projectName: "쇼핑몰",
-    projectDesc: "온라인 쇼핑몰 플랫폼입니다.",
-    points: [
-      "Vue.js를 활용한 SPA 개발",
-      "반응형 웹 디자인 구현",
-      "성능 최적화",
-    ],
-  },
-  {
-    id: 3,
-    name: "박웹",
-    role: "프론트엔드",
-    intro: "Next.js와 Tailwind CSS를 활용한 개발자입니다.",
-    projectImg: "/images/Frame.png",
-    projectName: "블로그",
-    projectDesc: "개인 블로그 플랫폼입니다.",
-    points: ["SSR/SSG 구현", "SEO 최적화", "다크모드 지원"],
-  },
-
-  // 백엔드
-  {
-    id: 4,
-    name: "최백엔드",
-    role: "백엔드",
-    intro: "Spring Boot와 JPA를 활용한 백엔드 개발자입니다.",
-    projectImg: "/images/Preview.png",
-    projectName: "API 서버",
-    projectDesc: "RESTful API 서버입니다.",
-    points: ["Spring Security 구현", "JWT 인증 시스템", "데이터베이스 설계"],
-  },
-  {
-    id: 5,
-    name: "정서버",
-    role: "백엔드",
-    intro: "Node.js와 Express를 활용한 백엔드 개발자입니다.",
-    projectImg: "/images/Frame.png",
-    projectName: "채팅 서버",
-    projectDesc: "실시간 채팅 서버입니다.",
-    points: ["Socket.io 구현", "Redis 캐싱", "마이크로서비스 아키텍처"],
-  },
-  {
-    id: 6,
-    name: "한API",
-    role: "백엔드",
-    intro: "Python Django를 활용한 백엔드 개발자입니다.",
-    projectImg: "/images/Preview.png",
-    projectName: "관리 시스템",
-    projectDesc: "회사 관리 시스템입니다.",
-    points: ["Django REST Framework", "PostgreSQL 연동", "AWS 배포"],
-  },
-
-  // 클라우드 엔지니어링
-  {
-    id: 7,
-    name: "김클라우드",
-    role: "클라우드 엔지니어링",
-    intro: "AWS와 Docker를 활용한 클라우드 엔지니어입니다.",
-    projectImg: "/images/Frame.png",
-    projectName: "인프라 구축",
-    projectDesc: "클라우드 인프라 구축 프로젝트입니다.",
-    points: ["AWS EC2, S3 활용", "Docker 컨테이너화", "CI/CD 파이프라인 구축"],
-  },
-  {
-    id: 8,
-    name: "이도커",
-    role: "클라우드 엔지니어링",
-    intro: "Kubernetes와 Terraform을 활용한 DevOps 엔지니어입니다.",
-    projectImg: "/images/Preview.png",
-    projectName: "오케스트레이션",
-    projectDesc: "쿠버네티스 클러스터 관리 시스템입니다.",
-    points: ["K8s 클러스터 관리", "Terraform IaC", "모니터링 시스템 구축"],
-  },
-
-  // 데이터분석
-  {
-    id: 9,
-    name: "박데이터",
-    role: "데이터분석",
-    intro: "Python과 Pandas를 활용한 데이터 분석가입니다.",
-    projectImg: "/images/Frame.png",
-    projectName: "데이터 분석",
-    projectDesc: "고객 데이터 분석 프로젝트입니다.",
-    points: [
-      "Pandas, NumPy 활용",
-      "시각화 라이브러리 사용",
-      "머신러닝 모델 개발",
-    ],
-  },
-  {
-    id: 10,
-    name: "최분석",
-    role: "데이터분석",
-    intro: "R과 Tableau를 활용한 데이터 사이언티스트입니다.",
-    projectImg: "/images/Preview.png",
-    projectName: "BI 대시보드",
-    projectDesc: "비즈니스 인텔리전스 대시보드입니다.",
-    points: ["R 통계 분석", "Tableau 시각화", "예측 모델링"],
-  },
-
-  // 게임 개발
-  {
-    id: 11,
-    name: "정게임",
-    role: "게임 개발",
-    intro: "Unity와 C#을 활용한 게임 개발자입니다.",
-    projectImg: "/images/Frame.png",
-    projectName: "모바일 게임",
-    projectDesc: "2D 모바일 게임입니다.",
-    points: ["Unity 엔진 활용", "C# 스크립팅", "게임 로직 구현"],
-  },
-  {
-    id: 12,
-    name: "한게임",
-    role: "게임 개발",
-    intro: "Unreal Engine을 활용한 게임 개발자입니다.",
-    projectImg: "/images/Preview.png",
-    projectName: "3D 게임",
-    projectDesc: "3D 액션 게임입니다.",
-    points: ["Unreal Engine 5", "블루프린트 시스템", "3D 모델링 연동"],
-  },
-
-  // UI/UX
-  {
-    id: 13,
-    name: "김디자인",
-    role: "UI/UX",
-    intro: "Figma와 Adobe XD를 활용한 UI/UX 디자이너입니다.",
-    projectImg: "/images/Frame.png",
-    projectName: "앱 디자인",
-    projectDesc: "모바일 앱 UI/UX 디자인입니다.",
-    points: ["Figma 프로토타이핑", "사용자 리서치", "디자인 시스템 구축"],
-  },
-  {
-    id: 14,
-    name: "이UX",
-    role: "UI/UX",
-    intro: "사용자 경험을 중시하는 UX 디자이너입니다.",
-    projectImg: "/images/Preview.png",
-    projectName: "웹사이트 리뉴얼",
-    projectDesc: "기업 웹사이트 UX 개선 프로젝트입니다.",
-    points: ["사용자 인터뷰", "퍼소나 설계", "A/B 테스트"],
-  },
-
-  // 안드로이드
-  {
-    id: 15,
-    name: "박안드로이드",
-    role: "안드로이드",
-    intro: "Kotlin과 Android Studio를 활용한 안드로이드 개발자입니다.",
-    projectImg: "/images/Frame.png",
-    projectName: "모바일 앱",
-    projectDesc: "안드로이드 네이티브 앱입니다.",
-    points: ["Kotlin 개발", "MVVM 아키텍처", "Google Play 배포"],
-  },
-  {
-    id: 16,
-    name: "최모바일",
-    role: "안드로이드",
-    intro: "React Native를 활용한 크로스 플랫폼 개발자입니다.",
-    projectImg: "/images/Preview.png",
-    projectName: "하이브리드 앱",
-    projectDesc: "React Native 크로스 플랫폼 앱입니다.",
-    points: ["React Native", "JavaScript/TypeScript", "iOS/Android 동시 개발"],
-  },
-
-  // iOS
-  {
-    id: 17,
-    name: "정iOS",
-    role: "iOS",
-    intro: "Swift와 Xcode를 활용한 iOS 개발자입니다.",
-    projectImg: "/images/Frame.png",
-    projectName: "iOS 앱",
-    projectDesc: "iOS 네이티브 앱입니다.",
-    points: ["Swift 개발", "UIKit/SwiftUI", "App Store 배포"],
-  },
-  {
-    id: 18,
-    name: "한애플",
-    role: "iOS",
-    intro: "iOS 생태계에 특화된 개발자입니다.",
-    projectImg: "/images/Preview.png",
-    projectName: "iOS 게임",
-    projectDesc: "iOS 게임 앱입니다.",
-    points: ["SpriteKit 활용", "게임 로직 구현", "인앱 결제 시스템"],
-  },
-
-  // 추가 데이터 (기존 30개 유지)
-  ...Array.from({ length: 12 }).map((_, i) => ({
-    id: 19 + i,
-    name: `김멋사${19 + i}`,
-    role: [
-      "프론트엔드",
-      "백엔드",
-      "클라우드 엔지니어링",
-      "데이터분석",
-      "게임 개발",
-      "UI/UX",
-      "안드로이드",
-      "iOS",
-    ][i % 8],
-    intro: "클린아키텍처를 설계하며 코딩하는 개발자입니다.",
-    projectImg: i % 2 === 0 ? "/images/Frame.png" : "/images/Preview.png",
-    projectName: "토도동",
-    projectDesc: "농구 경기를 볼 수 있는 서비스 입니다.",
-    points: [
-      "Redux Hooks를 활용한 000개선",
-      "클린아키텍처를 적용하여 코드 효율 달성",
-      "Vercel을 활용한 배포",
-    ],
-  })),
-];
-
 export default function TalentSearchPage() {
   const searchParams = useSearchParams();
-  const [visibleCount, setVisibleCount] = useState(4);
+  const [talents, setTalents] = useState<Talent[]>([]);
   const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [skip, setSkip] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("전체");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [lastCheckTime, setLastCheckTime] = useState<number>(Date.now());
   const loaderRef = useRef<HTMLDivElement>(null);
 
   // URL 파라미터에서 태그 가져오기
@@ -298,18 +68,132 @@ export default function TalentSearchPage() {
     user_id: 1,
   });
 
+  const loadTalents = useCallback(async (reset: boolean = false) => {
+    if (loading) return;
+
+    console.log(`Loading talents: skip=${reset ? 0 : skip}, limit=10, reset=${reset}`);
+    setLoading(true);
+    try {
+      const currentSkip = reset ? 0 : skip;
+      const data = await TalentService.getTalents(currentSkip, 10);
+      console.log(`Received ${data.length} talents:`, data);
+
+      if (data.length === 0) {
+        setHasMore(false);
+      } else {
+        setTalents((prev) => {
+          if (reset) {
+            console.log(`Resetting talents, new count: ${data.length}`);
+            return data;
+          } else {
+            // 중복 제거 로직 추가
+            const existingIds = new Set(prev.map(t => t.user_id));
+            const uniqueNewData = data.filter(t => !existingIds.has(t.user_id));
+            
+            if (uniqueNewData.length === 0) {
+              console.log("No new unique talents found");
+              setHasMore(false);
+              return prev;
+            }
+            
+            const newTalents = [...prev, ...uniqueNewData];
+            console.log(`Total talents after update: ${newTalents.length} (added ${uniqueNewData.length} new)`);
+            return newTalents;
+          }
+        });
+        setSkip((prev) => reset ? 10 : prev + 10);
+      }
+    } catch (error) {
+      console.error("Failed to load talents:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [loading, skip]);
+
+  // 새로운 데이터 확인 함수
+  const checkForNewData = useCallback(async () => {
+    try {
+      const data = await TalentService.getTalents(0, 1);
+      if (data.length > 0) {
+        const latestTalent = data[0];
+        const latestTime = new Date(latestTalent.created_at).getTime();
+        
+        if (latestTime > lastCheckTime) {
+          console.log("New data detected, refreshing...");
+          setLastCheckTime(latestTime);
+          setTalents([]);
+          setSkip(0);
+          setHasMore(true);
+          loadTalents(true);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to check for new data:", error);
+    }
+  }, [lastCheckTime, loadTalents]);
+
+  // 주기적으로 새로운 데이터 확인 (5분마다)
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    const interval = setInterval(() => {
+      checkForNewData();
+    }, 5 * 60 * 1000); // 5분
+
+    return () => clearInterval(interval);
+  }, [isInitialized, checkForNewData]);
+
+  // 페이지 포커스 시 새로운 데이터 확인
+  useEffect(() => {
+    const handleFocus = () => {
+      if (isInitialized) {
+        console.log("Page focused, checking for new data");
+        checkForNewData();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [isInitialized, checkForNewData]);
+
+  // 초기 데이터 로드 (한 번만 실행)
+  useEffect(() => {
+    if (!isInitialized) {
+      console.log("Initial data load");
+      setIsInitialized(true);
+      loadTalents(true);
+    }
+  }, [isInitialized, loadTalents]);
+
+  // 필터 변경 시 데이터 리셋 (디바운스 적용)
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    const timeoutId = setTimeout(() => {
+      console.log("Filter changed, resetting data");
+      setTalents([]);
+      setSkip(0);
+      setHasMore(true);
+      loadTalents(true);
+    }, 300); // 300ms 디바운스
+
+    return () => clearTimeout(timeoutId);
+  }, [selectedCategory, searchQuery, isInitialized, loadTalents]);
+
   // 검색 필터링 함수
-  const filterBySearch = (project: any) => {
+  const filterBySearch = (talent: Talent) => {
     if (!searchQuery.trim()) return true;
 
     const query = searchQuery.toLowerCase();
     const searchableText = [
-      project.name,
-      project.role,
-      project.intro,
-      project.projectName,
-      project.projectDesc,
-      ...project.points,
+      talent.name,
+      talent.job_type,
+      talent.short_intro,
+      talent.school,
+      talent.major,
+      talent.representative_portfolio?.project_name || "",
+      talent.representative_portfolio?.project_intro || "",
+      talent.representative_portfolio?.tech_stack || "",
     ]
       .join(" ")
       .toLowerCase();
@@ -317,11 +201,13 @@ export default function TalentSearchPage() {
     return searchableText.includes(query);
   };
 
-  // 카테고리 및 검색 필터링된 프로젝트
-  const filteredProjects = DUMMY_PROJECTS.filter(filterBySearch).filter(
-    (project) =>
-      selectedCategory === "전체" || project.role === selectedCategory
-  );
+  // 카테고리 및 검색 필터링된 인재
+  const filteredTalents = talents
+    .filter(filterBySearch)
+    .filter(
+      (talent) =>
+        selectedCategory === "전체" || talent.job_type === selectedCategory
+    );
 
   const handleInputChange = (field: keyof ConnectFormData, value: string) => {
     setFormData((prev) => ({
@@ -340,12 +226,10 @@ export default function TalentSearchPage() {
 
   const handleCategoryClick = (category: string) => {
     setSelectedCategory(category);
-    setVisibleCount(4); // 카테고리 변경 시 표시 개수 초기화
   };
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
-    setVisibleCount(4); // 검색어 변경 시 표시 개수 초기화
   };
 
   const handleSubmit = async () => {
@@ -396,28 +280,22 @@ export default function TalentSearchPage() {
     }
   };
 
+  // 무한스크롤
   useEffect(() => {
     if (!loaderRef.current) return;
+
     const observer = new window.IntersectionObserver(
       (entries) => {
-        if (
-          entries[0].isIntersecting &&
-          visibleCount < filteredProjects.length
-        ) {
-          setLoading(true);
-          setTimeout(() => {
-            setVisibleCount((prev) =>
-              Math.min(prev + 8, filteredProjects.length)
-            );
-            setLoading(false);
-          }, 600);
+        if (entries[0].isIntersecting && hasMore && !loading) {
+          loadTalents(false);
         }
       },
-      { threshold: 1 }
+      { threshold: 0.1 }
     );
+
     observer.observe(loaderRef.current);
     return () => observer.disconnect();
-  }, [visibleCount, filteredProjects.length]);
+  }, [hasMore, loading, loadTalents]);
 
   return (
     <div className="min-h-screen flex flex-col text-gray-900">
@@ -759,7 +637,7 @@ export default function TalentSearchPage() {
           </div>
 
           {/* 검색 결과 없음 메시지 */}
-          {filteredProjects.length === 0 && searchQuery.trim() !== "" && (
+          {filteredTalents.length === 0 && searchQuery.trim() !== "" && (
             <div className="text-center py-12">
               <p className="text-gray-500 text-lg">
                 "{searchQuery}"에 대한 검색 결과가 없습니다.
@@ -772,57 +650,74 @@ export default function TalentSearchPage() {
 
           {/* 인재 카드 리스트 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-10 mb-26">
-            {filteredProjects.slice(0, visibleCount).map((item) => (
+            {filteredTalents.map((talent, index) => (
               <Link
-                key={item.id}
-                href={`/talent-search/${item.id}`}
+                key={`${talent.user_id}-${talent.created_at}-${index}`}
+                href={`/talent-search/${talent.user_id}`}
                 className="w-full max-w-xl mx-auto border border-gray-200 rounded-xl bg-white shadow-lg hover:shadow-xl transition-shadow p-5 flex flex-col gap-5 cursor-pointer focus:outline-none"
               >
                 {/* 상단: 프로필, 이름, 소개, 버튼 */}
                 <div className="flex items-center gap-4">
                   <Image
-                    src="/images/Ellipse 4.png"
+                    src={
+                      talent.profile_image
+                        ? `https://lionconnect-backend.onrender.com${talent.profile_image}`
+                        : "/images/Ellipse 4.png"
+                    }
                     alt="프로필"
                     width={48}
                     height={48}
-                    className="rounded-full"
+                    className="rounded-full object-cover"
                   />
                   <div className="flex flex-col flex-1 min-w-0 gap-1">
                     <span className="text-lg font-bold text-gray-900 truncate">
-                      {item.name} | {item.role}
+                      {talent.name} | {talent.job_type}
                     </span>
                     <span className="text-sm text-gray-500 truncate">
-                      {item.intro}
+                      {talent.short_intro}
                     </span>
                   </div>
                   <button
-                    onClick={(e) => handleConnectClick(item.id, e)}
+                    onClick={(e) => handleConnectClick(talent.user_id, e)}
                     className="px-4 py-1 border border-orange-200 bg-white text-orange-500 rounded-full font-semibold text-sm hover:bg-orange-50 transition"
                   >
                     커넥트
                   </button>
                 </div>
                 {/* 프로젝트 이미지 + hover 오버레이 */}
-                <div className="w-full relative group">
-                  <Image
-                    src={item.projectImg}
-                    alt="프로젝트"
-                    width={600}
-                    height={240}
-                    className="rounded-xl w-full h-[260px] object-cover transition-all duration-300"
-                  />
-                  <div className="absolute inset-0 rounded-xl bg-black/50 flex flex-col items-start justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-8 text-left">
-                    <span className="text-xl font-bold text-white mb-2">
-                      {item.projectName}
-                    </span>
-                    <span className="text-white text-base mb-1">
-                      {item.projectDesc}
+                {talent.representative_portfolio ? (
+                  <div className="w-full relative group">
+                    <Image
+                      src={
+                        talent.representative_portfolio.project_image_url
+                          ? `https://lionconnect-backend.onrender.com${talent.representative_portfolio.project_image_url}`
+                          : "/images/Frame.png"
+                      }
+                      alt="프로젝트"
+                      width={600}
+                      height={240}
+                      className="rounded-xl w-full h-[260px] object-cover transition-all duration-300"
+                    />
+                    <div className="absolute inset-0 rounded-xl bg-black/50 flex flex-col items-start justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-8 text-left">
+                      <span className="text-xl font-bold text-white mb-2">
+                        {talent.representative_portfolio.project_name}
+                      </span>
+                      <span className="text-white text-base mb-1">
+                        {talent.representative_portfolio.project_intro}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-full h-[260px] bg-gray-100 rounded-xl flex items-center justify-center">
+                    <span className="text-gray-400 text-sm">
+                      프로젝트 정보가 없습니다
                     </span>
                   </div>
-                </div>
+                )}
               </Link>
             ))}
           </div>
+
           {/* 무한스크롤 로더 */}
           <div
             ref={loaderRef}
@@ -830,6 +725,11 @@ export default function TalentSearchPage() {
           >
             {loading && (
               <span className="text-gray-400 mt-10">불러오는 중...</span>
+            )}
+            {!hasMore && talents.length > 0 && (
+              <span className="text-gray-400 mt-10">
+                모든 인재를 불러왔습니다.
+              </span>
             )}
           </div>
 

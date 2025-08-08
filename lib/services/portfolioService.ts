@@ -1,16 +1,15 @@
 import { apiClient } from "../api";
 
-// 포트폴리오 인터페이스
+// 포트폴리오 인터페이스 (백엔드 요구사항에 맞춤)
 export interface PortfolioData {
-  resume_id?: number;
-  user_id?: number;
-  is_representative?: boolean;
-  image?: File | null;
-  project_url?: string;
+  user_id: number; // 필수 필드로 변경
   project_name: string;
   project_intro: string;
   project_period: string;
   role: string;
+  is_representative: boolean; // 필수 필드로 변경
+  image?: File | null; // 선택 필드
+  project_url?: string | null; // 선택 필드
 }
 
 // 포트폴리오 API 응답 인터페이스
@@ -46,46 +45,62 @@ export class PortfolioService {
     data: PortfolioData
   ): Promise<PortfolioResponse> {
     try {
-      // FormData를 사용하여 파일과 텍스트 데이터를 함께 전송
-      const formData = new FormData();
+      // 데이터 검증
+      const requiredFields = [
+        "user_id",
+        "project_name",
+        "project_intro",
+        "project_period",
+        "role",
+        "is_representative",
+      ];
 
-      // 필수 필드들 추가
-      formData.append("project_name", data.project_name);
-      formData.append("project_intro", data.project_intro);
-      formData.append("project_period", data.project_period);
-      formData.append("role", data.role);
+      const missingFields = requiredFields.filter((field) => {
+        const value = data[field as keyof PortfolioData];
+        return value === undefined || value === null || value === "";
+      });
 
-      // 선택적 필드들 추가
-      if (data.resume_id) {
-        formData.append("resume_id", data.resume_id.toString());
-      }
-      if (data.user_id) {
-        formData.append("user_id", data.user_id.toString());
-      }
-      if (data.is_representative !== undefined) {
-        formData.append("is_representative", data.is_representative.toString());
-      }
-      if (data.image) {
-        formData.append("image", data.image);
-      }
-      if (data.project_url) {
-        formData.append("project_url", data.project_url);
+      if (missingFields.length > 0) {
+        console.error("필수 필드 누락:", missingFields);
+        return {
+          success: false,
+          message: `필수 필드가 누락되었습니다: ${missingFields.join(", ")}`,
+        };
       }
 
-      // FormData 디버깅
-      console.log("=== PortfolioService FormData 디버깅 ===");
+      // JSON 형태로 전송
+      const jsonData: any = {
+        user_id: data.user_id,
+        is_representative: data.is_representative,
+        project_name: data.project_name,
+        project_intro: data.project_intro,
+        project_period: data.project_period,
+        role: data.role,
+        ...(data.project_url && { project_url: data.project_url }),
+      };
+
+      // 이미지가 File 객체인 경우 별도 처리 필요
+      if (data.image && data.image instanceof File) {
+        console.warn(
+          "이미지 파일이 포함되어 있습니다. 별도 업로드가 필요할 수 있습니다."
+        );
+        // TODO: 이미지 업로드 처리
+      } else if (data.image) {
+        // 이미지가 URL인 경우
+        jsonData.image = data.image;
+      }
+
+      // JSON 디버깅
+      console.log("=== PortfolioService JSON 디버깅 ===");
       console.log("입력받은 데이터:", data);
-      console.log("FormData 객체:", formData);
-      console.log("FormData entries:");
-      for (let [key, value] of formData.entries()) {
-        console.log(`${key}:`, value);
-      }
-      console.log("FormData 크기:", Array.from(formData.entries()).length);
-      console.log("=== PortfolioService FormData 디버깅 끝 ===");
+      console.log("전송할 JSON 데이터:", jsonData);
+      console.log("JSON 데이터 키들:", Object.keys(jsonData));
+      console.log("JSON 데이터 값들:", Object.values(jsonData));
+      console.log("=== PortfolioService JSON 디버깅 끝 ===");
 
-      const response = await apiClient.post("/portfolios/", formData, {
+      const response = await apiClient.post("/portfolios/", jsonData, {
         headers: {
-          "Content-Type": "multipart/form-data",
+          "Content-Type": "application/json",
         },
       });
 
@@ -97,10 +112,36 @@ export class PortfolioService {
     } catch (error: any) {
       console.error("포트폴리오 저장 실패:", error);
 
+      // 상세한 에러 정보 로깅
+      if (error.response) {
+        console.error("서버 응답 상태:", error.response.status);
+        console.error("서버 응답 데이터:", error.response.data);
+        console.error("서버 응답 헤더:", error.response.headers);
+
+        // detail 배열이 있는 경우 상세 정보 출력
+        if (
+          error.response.data?.detail &&
+          Array.isArray(error.response.data.detail)
+        ) {
+          console.error("서버 유효성 검증 오류 상세:");
+          error.response.data.detail.forEach((err: any, index: number) => {
+            console.error(`오류 ${index + 1}:`, err);
+            console.error(`  - 타입:`, err.type);
+            console.error(`  - 위치:`, err.loc);
+            console.error(`  - 메시지:`, err.msg);
+            console.error(`  - 입력값:`, err.input);
+          });
+        }
+      }
+
       // 에러 메시지 처리
       let errorMessage = "포트폴리오 저장에 실패했습니다.";
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
+      } else if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
       } else if (error.message) {
         errorMessage = error.message;
       }
@@ -153,38 +194,24 @@ export class PortfolioService {
     data: PortfolioData
   ): Promise<PortfolioResponse> {
     try {
-      // FormData를 사용하여 파일과 텍스트 데이터를 함께 전송
-      const formData = new FormData();
-
-      // 필수 필드들 추가
-      formData.append("project_name", data.project_name);
-      formData.append("project_intro", data.project_intro);
-      formData.append("project_period", data.project_period);
-      formData.append("role", data.role);
-
-      // 선택적 필드들 추가
-      if (data.resume_id) {
-        formData.append("resume_id", data.resume_id.toString());
-      }
-      if (data.user_id) {
-        formData.append("user_id", data.user_id.toString());
-      }
-      if (data.is_representative !== undefined) {
-        formData.append("is_representative", data.is_representative.toString());
-      }
-      if (data.image) {
-        formData.append("image", data.image);
-      }
-      if (data.project_url) {
-        formData.append("project_url", data.project_url);
-      }
+      // JSON 형태로 전송
+      const jsonData = {
+        user_id: data.user_id,
+        is_representative: data.is_representative,
+        project_name: data.project_name,
+        project_intro: data.project_intro,
+        project_period: data.project_period,
+        role: data.role,
+        ...(data.image && { image: data.image }),
+        ...(data.project_url && { project_url: data.project_url }),
+      };
 
       const response = await apiClient.put(
         `/portfolios/${portfolioId}/`,
-        formData,
+        jsonData,
         {
           headers: {
-            "Content-Type": "multipart/form-data",
+            "Content-Type": "application/json",
           },
         }
       );

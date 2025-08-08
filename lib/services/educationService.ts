@@ -2,7 +2,6 @@ import { apiClient } from "@/lib/api";
 
 export interface EducationData {
   resume_id: number;
-  user_id?: number;
   institution: string;
   period: string;
   name: string;
@@ -19,18 +18,24 @@ export class EducationService {
     educationData: EducationData
   ): Promise<EducationResponse> {
     try {
-      // user_id가 있으면 요청 데이터에 추가
-      const requestData = { ...educationData };
-      if (educationData.user_id) {
-        requestData.user_id = educationData.user_id;
-      }
+      // FormData 형식으로 변환 (application/x-www-form-urlencoded)
+      const formData = new URLSearchParams();
+      formData.append('resume_id', educationData.resume_id.toString());
+      formData.append('institution', educationData.institution);
+      formData.append('period', educationData.period);
+      formData.append('name', educationData.name);
 
       // educationData 값 확인을 위한 로그
-      console.log("전송할 교육 데이터:", requestData);
+      console.log("전송할 교육 데이터:", educationData);
+      console.log("FormData:", formData.toString());
 
-      const response = await apiClient.post("/educations/", requestData);
+      const response = await apiClient.post("/educations/", formData, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
 
-      if (response.status === 200) {
+      if (response.status === 200 || response.status === 201) {
         return {
           success: true,
           message: "교육 등록 성공",
@@ -87,18 +92,25 @@ export class EducationService {
     educationData: EducationData
   ): Promise<EducationResponse> {
     try {
-      // user_id가 있으면 요청 데이터에 추가
-      const requestData = { ...educationData };
-      if (educationData.user_id) {
-        requestData.user_id = educationData.user_id;
-      }
+      // FormData 형식으로 변환 (application/x-www-form-urlencoded)
+      const formData = new URLSearchParams();
+      formData.append('resume_id', educationData.resume_id.toString());
+      formData.append('institution', educationData.institution);
+      formData.append('period', educationData.period);
+      formData.append('name', educationData.name);
 
       // educationData 값 확인을 위한 로그
-      console.log("업데이트할 교육 데이터:", requestData);
+      console.log("업데이트할 교육 데이터:", educationData);
+      console.log("FormData:", formData.toString());
 
       const response = await apiClient.put(
         `/educations/${educationId}/`,
-        requestData
+        formData,
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        }
       );
 
       if (response.status === 200) {

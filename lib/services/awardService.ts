@@ -1,10 +1,10 @@
 import { apiClient } from "@/lib/api";
 
 export interface AwardData {
-  user_id: number;
-  name: string;
-  date: string;
-  organization: string;
+  resume_id: number; // user_id → resume_id로 변경
+  name: string; // title → name으로 변경
+  date?: string;
+  organization: string; // description → organization으로 변경
 }
 
 export interface AwardResponse {
@@ -16,23 +16,24 @@ export interface AwardResponse {
 export class AwardService {
   static async submitAward(awardData: AwardData): Promise<AwardResponse> {
     try {
-      // JSON 형태로 전송
-      const requestData = {
-        user_id: awardData.user_id,
-        name: awardData.name,
-        date: awardData.date,
-        organization: awardData.organization,
-      };
+      // FormData 형태로 전송 (application/x-www-form-urlencoded)
+      const formData = new URLSearchParams();
+      formData.append("resume_id", awardData.resume_id.toString());
+      formData.append("name", awardData.name);
+      if (awardData.date) {
+        formData.append("date", awardData.date);
+      }
+      formData.append("organization", awardData.organization);
 
-      // JSON 디버깅
-      console.log("=== AwardService JSON 디버깅 ===");
+      // FormData 디버깅
+      console.log("=== AwardService FormData 디버깅 ===");
       console.log("입력받은 데이터:", awardData);
-      console.log("전송할 JSON 데이터:", requestData);
-      console.log("=== AwardService JSON 디버깅 끝 ===");
+      console.log("전송할 FormData:", formData.toString());
+      console.log("=== AwardService FormData 디버깅 끝 ===");
 
-      const response = await apiClient.post("/awards/", requestData, {
+      const response = await apiClient.post("/awards/", formData, {
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
         },
       });
 
@@ -86,23 +87,24 @@ export class AwardService {
     awardData: AwardData
   ): Promise<AwardResponse> {
     try {
-      // JSON 형태로 전송
-      const requestData = {
-        user_id: awardData.user_id,
-        name: awardData.name,
-        date: awardData.date,
-        organization: awardData.organization,
-      };
+      // FormData 형태로 전송 (application/x-www-form-urlencoded)
+      const formData = new URLSearchParams();
+      formData.append("resume_id", awardData.resume_id.toString());
+      formData.append("name", awardData.name);
+      if (awardData.date) {
+        formData.append("date", awardData.date);
+      }
+      formData.append("organization", awardData.organization);
 
-      // JSON 디버깅
-      console.log("=== AwardService Update JSON 디버깅 ===");
+      // FormData 디버깅
+      console.log("=== AwardService Update FormData 디버깅 ===");
       console.log("입력받은 데이터:", awardData);
-      console.log("전송할 JSON 데이터:", requestData);
-      console.log("=== AwardService Update JSON 디버깅 끝 ===");
+      console.log("전송할 FormData:", formData.toString());
+      console.log("=== AwardService Update FormData 디버깅 끝 ===");
 
-      const response = await apiClient.put(`/awards/${awardId}/`, requestData, {
+      const response = await apiClient.put(`/awards/${awardId}/`, formData, {
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
         },
       });
 

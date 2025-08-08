@@ -64,6 +64,12 @@ export default function PortfolioSection({
             </svg>
           </button>
         </div>
+        {/* 안내 메시지 */}
+        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-800">
+            💡 <strong>안내:</strong> 포트폴리오 정보를 입력하고 저장해주세요.
+          </p>
+        </div>
       </div>
 
       {/* 포트폴리오 카드들 */}

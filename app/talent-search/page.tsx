@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, Suspense } from "react";
 import { Search, ChevronRight } from "lucide-react";
 import { ConnectRequestService } from "@/lib/services/connectRequestService";
 import { TalentService, Talent } from "@/lib/services/talentService";
@@ -22,7 +22,7 @@ interface ConnectFormData {
   user_id: number;
 }
 
-export default function TalentSearchPage() {
+function TalentSearchContent() {
   const searchParams = useSearchParams();
   const [talents, setTalents] = useState<Talent[]>([]);
   const [loading, setLoading] = useState(false);
@@ -732,5 +732,17 @@ export default function TalentSearchPage() {
         </section>
       </main>
     </div>
+  );
+}
+
+export default function TalentSearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+      </div>
+    }>
+      <TalentSearchContent />
+    </Suspense>
   );
 }

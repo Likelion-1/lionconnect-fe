@@ -55,32 +55,56 @@ export class TalentService {
       const processedData = data.map((talent: any) => {
         console.log("Processing talent:", talent);
         console.log("Talent portfolios:", talent.portfolios);
-        
-        // representative_portfolio가 null이고 portfolios 배열이 있는 경우
-        let representativePortfolio = talent.representative_portfolio;
-        console.log("Original representative_portfolio:", representativePortfolio);
 
-        if (
-          !representativePortfolio &&
-          talent.portfolios &&
-          talent.portfolios.length > 0
-        ) {
+        // representative_portfolio 매핑 (백엔드의 project_image_url -> image로 통일)
+        let representativePortfolio = null as {
+          project_name: string;
+          project_intro: string;
+          image: string;
+          tech_stack: string;
+        } | null;
+
+        const rawRep = talent.representative_portfolio;
+        console.log("Original representative_portfolio:", rawRep);
+
+        if (rawRep) {
+          representativePortfolio = {
+            project_name: rawRep.project_name ?? "",
+            project_intro: rawRep.project_intro ?? "",
+            // 백엔드가 project_image_url을 줄 수도 있고 image를 줄 수도 있음
+            image:
+              rawRep.image ??
+              rawRep.project_image_url ??
+              rawRep.project_image ??
+              "",
+            tech_stack: rawRep.tech_stack ?? "",
+          };
+        } else if (talent.portfolios && talent.portfolios.length > 0) {
           console.log("Found portfolios array, processing...");
           // portfolios 배열에서 is_representative가 true인 것을 찾거나 첫 번째 것을 사용
           const repPortfolio =
             talent.portfolios.find((p: any) => p.is_representative) ||
             talent.portfolios[0];
           console.log("Selected portfolio:", repPortfolio);
-          
+
           representativePortfolio = {
-            project_name: repPortfolio.project_name,
-            project_intro: repPortfolio.project_intro,
-            image: repPortfolio.image, // image 필드 사용
-            tech_stack: repPortfolio.tech_stack || "",
+            project_name: repPortfolio.project_name ?? "",
+            project_intro: repPortfolio.project_intro ?? "",
+            image:
+              repPortfolio.image ??
+              repPortfolio.project_image_url ??
+              repPortfolio.project_image ??
+              "",
+            tech_stack: repPortfolio.tech_stack ?? "",
           };
-          console.log("Created representative_portfolio:", representativePortfolio);
+          console.log(
+            "Created representative_portfolio from portfolios:",
+            representativePortfolio
+          );
         } else {
-          console.log("No portfolios array found or representative_portfolio already exists");
+          console.log(
+            "No representative_portfolio and no portfolios array found"
+          );
         }
 
         const processedTalent = {
@@ -94,7 +118,7 @@ export class TalentService {
           representative_portfolio: representativePortfolio,
           created_at: talent.created_at,
         };
-        
+
         console.log("Processed talent:", processedTalent);
         return processedTalent;
       });

@@ -220,19 +220,16 @@ function TalentSearchContent() {
 
   const handleSubmit = async () => {
     try {
-      // localStorage에서 user_id 가져오기
-      const savedUserId = localStorage.getItem("userId");
-      const currentUserId = savedUserId ? parseInt(savedUserId) : null;
-
-      if (!currentUserId) {
-        alert("사용자 정보를 찾을 수 없습니다. 로그인 후 다시 시도해주세요.");
+      // user_id는 커넥트를 보낼 '대상 인재'의 ID여야 함
+      const targetUserId = selectedUserId ?? formData.user_id;
+      if (!targetUserId) {
+        alert("대상 인재 정보가 없습니다. 다시 시도해주세요.");
         return;
       }
 
-      // user_id를 현재 로그인한 사용자 ID로 설정
       const requestData = {
         ...formData,
-        user_id: currentUserId,
+        user_id: targetUserId,
       };
 
       console.log("커넥트 요청 데이터:", requestData);

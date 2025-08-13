@@ -549,13 +549,17 @@ export default function TalentDetailPage() {
           <Image
             src={
               resume.profile_image
-                ? `https://lionconnect-backend.onrender.com${resume.profile_image}`
+                ? resume.profile_image // 이미 완전한 URL이므로 그대로 사용
                 : "/images/Ellipse 4.png"
             }
             alt="프로필"
             width={96}
             height={96}
             className="rounded-full object-cover"
+            onError={(e) => {
+              console.error("프로필 이미지 로딩 실패:", resume.profile_image);
+              e.currentTarget.src = "/images/Ellipse 4.png";
+            }}
           />
           <div className="text-xl font-bold">
             {resume.name}{" "}
@@ -607,12 +611,19 @@ export default function TalentDetailPage() {
                       <Image
                         src={
                           portfolio.image
-                            ? `https://lionconnect-backend.onrender.com${portfolio.image}`
+                            ? portfolio.image // 이미 완전한 URL이므로 그대로 사용
                             : "/images/Frame.png"
                         }
                         alt={portfolio.project_name}
                         fill
                         className="object-cover"
+                        onError={(e) => {
+                          console.error(
+                            "포트폴리오 이미지 로딩 실패:",
+                            portfolio.image
+                          );
+                          e.currentTarget.src = "/images/Frame.png";
+                        }}
                       />
                     </div>
                     <div className="flex flex-row items-end justify-between px-4 py-3 bg-white">

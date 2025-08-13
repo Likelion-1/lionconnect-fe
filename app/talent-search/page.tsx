@@ -647,13 +647,20 @@ function TalentSearchContent() {
                   <Image
                     src={
                       talent.profile_image
-                        ? `https://lionconnect-backend.onrender.com${talent.profile_image}`
+                        ? talent.profile_image // 이미 완전한 URL이므로 그대로 사용
                         : "/images/Ellipse 4.png"
                     }
                     alt="프로필"
                     width={48}
                     height={48}
                     className="rounded-full object-cover"
+                    onError={(e) => {
+                      console.error(
+                        "프로필 이미지 로딩 실패:",
+                        talent.profile_image
+                      );
+                      e.currentTarget.src = "/images/Ellipse 4.png";
+                    }}
                   />
                   <div className="flex flex-col flex-1 min-w-0 gap-1">
                     <span className="text-lg font-bold text-gray-900 truncate">
@@ -675,14 +682,21 @@ function TalentSearchContent() {
                   <div className="w-full relative group">
                     <Image
                       src={
-                        talent.representative_portfolio.project_image_url
-                          ? `https://lionconnect-backend.onrender.com${talent.representative_portfolio.project_image_url}`
+                        talent.representative_portfolio.image
+                          ? talent.representative_portfolio.image // 이미 완전한 URL이므로 그대로 사용
                           : "/images/Frame.png"
                       }
                       alt="프로젝트"
                       width={600}
                       height={240}
                       className="rounded-xl w-full h-[260px] object-cover transition-all duration-300"
+                      onError={(e) => {
+                        console.error(
+                          "프로젝트 이미지 로딩 실패:",
+                          talent.representative_portfolio?.image
+                        );
+                        e.currentTarget.src = "/images/Frame.png";
+                      }}
                     />
                     <div className="absolute inset-0 rounded-xl bg-black/50 flex flex-col items-start justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-8 text-left">
                       <span className="text-xl font-bold text-white mb-2">
@@ -737,11 +751,13 @@ function TalentSearchContent() {
 
 export default function TalentSearchPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-white flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+        </div>
+      }
+    >
       <TalentSearchContent />
     </Suspense>
   );

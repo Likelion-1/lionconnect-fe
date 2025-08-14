@@ -35,6 +35,9 @@ function TalentSearchContent() {
   const [isInitialized, setIsInitialized] = useState(false);
   const loaderRef = useRef<HTMLDivElement>(null);
 
+  // 페이지네이션 기본단위
+  const PAGE_SIZE = 10;
+
   // URL 파라미터에서 태그 가져오기
   useEffect(() => {
     const tag = searchParams.get("tag");
@@ -69,14 +72,14 @@ function TalentSearchContent() {
 
   const loadTalents = useCallback(
     async (reset: boolean = false) => {
+      const currentSkip = reset ? 0 : Math.max(skip, talents.length);
       console.log(
-        `Loading talents: skip=${reset ? 0 : skip}, limit=10, reset=${reset}`
+        `Loading talents: skip=${currentSkip}, limit=${PAGE_SIZE}, reset=${reset}`
       );
       setLoading(true);
 
       try {
-        const currentSkip = reset ? 0 : skip;
-        const data = await TalentService.getTalents(currentSkip, 10);
+        const data = await TalentService.getTalents(currentSkip, PAGE_SIZE);
         console.log(`Received ${data.length} talents:`, data);
 
         if (data.length === 0) {
@@ -106,7 +109,8 @@ function TalentSearchContent() {
               return newTalents;
             }
           });
-          setSkip((prev) => (reset ? 10 : prev + 10));
+          // 서버 페이지네이션 기준으로 다음 페이지 시작점으로 이동
+          setSkip(() => currentSkip + PAGE_SIZE);
         }
       } catch (error) {
         console.error("Failed to load talents:", error);
@@ -117,7 +121,7 @@ function TalentSearchContent() {
         }, 100);
       }
     },
-    [] // 의존성 제거
+    [skip, talents.length]
   );
 
   // 초기 데이터 로드 (한 번만 실행)
@@ -149,6 +153,10 @@ function TalentSearchContent() {
     if (isInitialized && talents.length === 0) {
       console.log("Restoring data after navigation");
       loadTalents(true);
+    } else if (isInitialized && talents.length > 0) {
+      // 기존 데이터가 있을 경우, 다음 페이지를 정확히 이어받도록 skip/hasMore 동기화
+      setSkip((prev) => (prev < talents.length ? talents.length : prev));
+      setHasMore(true);
     }
   }, [isInitialized, talents.length]); // talents.length만 의존성으로
 
@@ -157,7 +165,9 @@ function TalentSearchContent() {
     const handlePopState = () => {
       // 뒤로가기/앞으로가기 시 데이터가 있으면 새로고침하지 않음
       if (talents.length > 0) {
-        console.log("Navigation detected, keeping existing data");
+        console.log("Navigation detected, syncing pagination to existing data");
+        setSkip((prev) => (prev < talents.length ? talents.length : prev));
+        setHasMore(true);
         return;
       }
     };
@@ -278,7 +288,7 @@ function TalentSearchContent() {
 
     observer.observe(loaderRef.current);
     return () => observer.disconnect();
-  }, [hasMore, loading]); // loadTalents 의존성 제거
+  }, [hasMore, loading, loadTalents]);
 
   return (
     <div className="min-h-screen flex flex-col text-gray-900">

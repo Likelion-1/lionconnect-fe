@@ -662,8 +662,12 @@ export default function TalentDetailPage() {
                         {project.project_period}
                       </span>
                     </div>
-                    <div className="text-md text-gray-500 mb-1">
-                      {project.project_intro}
+                    <div className="text-md text-gray-500 mb-1 whitespace-pre-line">
+                      {project.project_intro
+                        ?.split(/\s*-\s+/)
+                        .filter((s: string) => s && s.trim().length > 0)
+                        .map((s: string) => `- ${s.trim()}`)
+                        .join("\n")}
                     </div>
                     <div className="text-md">
                       기술스택: {project.tech_stack}

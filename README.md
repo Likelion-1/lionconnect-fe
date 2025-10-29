@@ -40,13 +40,6 @@ Continue building your app on:
 NEXT_PUBLIC_KAKAO_CLIENT_ID=your_kakao_client_id_here
 KAKAO_CLIENT_SECRET=your_kakao_client_secret_here
 
-# Redirect URIs
-NEXT_PUBLIC_KAKAO_REDIRECT_URI_DEV=http://localhost:3000/auth/kakao/callback
-NEXT_PUBLIC_KAKAO_REDIRECT_URI_PROD=https://lion-connect.vercel.app/auth/kakao/callback
-
-# Backend API URLs
-NEXT_PUBLIC_API_BASE_URL=https://lionconnect-backend.onrender.com
-NEXT_PUBLIC_API_BASE_URL_PROD=https://lionconnect-backend.onrender.com
 ```
 
 **⚠️ 보안 주의사항:**
